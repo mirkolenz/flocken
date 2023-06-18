@@ -26,11 +26,12 @@ This is particularly useful for multi-arch images.
 The function takes the following attrset as an argument:
 
 - `images`: List of Docker images to be added to the manifest. Can for instance be produced using `dockerTools.buildLayeredImage`. _Note:_ This should be a list of identical images for different architectures.
-- `name`: Fully qualified name of the docker image (e.g. `ghcr.io/mirkolenz/flocken`).
+- `names`: List of fully qualified names of the docker image (e.g. `ghcr.io/mirkolenz/flocken`).
 - `branch`: Name of the git branch (e.g. `main`) that is added to the list of tags.
-- `latest`: Boolean indicating whether the `latest` tag should be added to the list of tags. If branch is `main` or `master`, this is automatically set to `true`.
+- `latest`: Boolean indicating whether the `latest` tag should be added to the list of tags. If branch is `main` or `master`, this is set to `true` by default.
 - `version`: Semantic version of the image (e.g. `v1.0.0` or `1.0.0`). The version as well as its major and minor components (`1.0` and `1`) are added to the list of tags.
 - `extraTags`: List of additional tags to be added to the manifest.
+- `name` (deprecated): Fully qualified name of the docker image (e.g. `ghcr.io/mirkolenz/flocken`).
 
 ## Advanced
 

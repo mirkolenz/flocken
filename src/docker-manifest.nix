@@ -4,6 +4,7 @@
   buildah,
   images,
   name,
+  names ? [],
   branch ? "",
   latest ? (builtins.elem branch ["main" "master"]),
   version ? "",
@@ -15,6 +16,8 @@
 }: let
   cleanVersion = lib.removePrefix "v" version;
   versionComponents = lib.splitString "." cleanVersion;
+  manifestName = "flocken";
+  allNames = names ++ [name];
   tags =
     extraTags
     ++ (lib.optional (branch != "") branch)
@@ -29,15 +32,17 @@ in
     name = "docker-manifest";
     text = ''
       set -x # echo on
-      if ${lib.getExe buildah} manifest exists "${name}"; then
-        ${lib.getExe buildah} manifest rm "${name}"
+      if ${lib.getExe buildah} manifest exists "${manifestName}"; then
+        ${lib.getExe buildah} manifest rm "${manifestName}"
       fi
-      ${lib.getExe buildah} manifest create "${name}"
+      ${lib.getExe buildah} manifest create "${manifestName}"
       for IMAGE in ${builtins.toString images}; do
-        ${lib.getExe buildah} manifest add "${name}" "${sourceProtocol}$IMAGE"
+        ${lib.getExe buildah} manifest add "${manifestName}" "${sourceProtocol}$IMAGE"
       done
-      for TAG in ${builtins.toString tags}; do
-        ${lib.getExe buildah} manifest push --all --format ${format} "${name}" "${targetProtocol}${name}:$TAG"
+      for NAME in ${builtins.toString allNames}; do
+        for TAG in ${builtins.toString tags}; do
+          ${lib.getExe buildah} manifest push --all --format ${format} "${manifestName}" "${targetProtocol}$NAME:$TAG"
+        done
       done
     '';
   }
