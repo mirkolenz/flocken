@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/mirkolenz/flocken/compare/v1.0.0...v1.1.0) (2023-06-18)
+
+
+### Features
+
+* specify multiple names for the manifest ([dd4ed43](https://github.com/mirkolenz/flocken/commit/dd4ed435f029c213710e7501399651aeaba66485))
+
 ## 1.0.0 (2023-06-13)
 
 
