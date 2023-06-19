@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/mirkolenz/flocken/compare/v1.1.0...v1.1.1) (2023-06-19)
+
+
+### Bug Fixes
+
+* handle shellcheck SC2043 error ([d02ccd7](https://github.com/mirkolenz/flocken/commit/d02ccd7082e668708a0d1704509e89801f935b00))
+
 ## [1.1.0](https://github.com/mirkolenz/flocken/compare/v1.0.0...v1.1.0) (2023-06-18)
 
 
