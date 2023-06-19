@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/mirkolenz/flocken/compare/v1.1.1...v1.1.2) (2023-06-19)
+
+
+### Bug Fixes
+
+* add missing docker-manifest name ([dc27545](https://github.com/mirkolenz/flocken/commit/dc27545de7973509245cd94646845104aba68998))
+
 ## [1.1.1](https://github.com/mirkolenz/flocken/compare/v1.1.0...v1.1.1) (2023-06-19)
 
 
