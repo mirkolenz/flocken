@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/mirkolenz/flocken/compare/v1.1.2...v1.1.3) (2023-06-19)
+
+
+### Bug Fixes
+
+* add assertions ([f1c5e4d](https://github.com/mirkolenz/flocken/commit/f1c5e4dc313fa96607f206ff027284add451a6e0))
+
 ## [1.1.2](https://github.com/mirkolenz/flocken/compare/v1.1.1...v1.1.2) (2023-06-19)
 
 
