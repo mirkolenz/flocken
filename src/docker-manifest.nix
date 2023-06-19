@@ -1,6 +1,6 @@
 {
   lib,
-  writeShellApplication,
+  writeShellScriptBin,
   buildah,
   images,
   name,
@@ -28,21 +28,20 @@
       (builtins.elemAt versionComponents 0)
     ]);
 in
-  writeShellApplication {
-    name = "docker-manifest";
-    text = ''
-      set -x # echo on
-      if ${lib.getExe buildah} manifest exists "${manifestName}"; then
-        ${lib.getExe buildah} manifest rm "${manifestName}"
-      fi
-      ${lib.getExe buildah} manifest create "${manifestName}"
-      for IMAGE in ${builtins.toString images}; do
-        ${lib.getExe buildah} manifest add "${manifestName}" "${sourceProtocol}$IMAGE"
+  writeShellScriptBin ''
+    set -x # echo on
+    if ${lib.getExe buildah} manifest exists "${manifestName}"; then
+      ${lib.getExe buildah} manifest rm "${manifestName}"
+    fi
+    ${lib.getExe buildah} manifest create "${manifestName}"
+    for IMAGE in ${builtins.toString images}; do
+      ${lib.getExe buildah} manifest add "${manifestName}" "${sourceProtocol}$IMAGE"
+    done
+    # shellcheck disable=SC2043
+    for NAME in ${builtins.toString allNames}; do
+      # shellcheck disable=SC2043
+      for TAG in ${builtins.toString tags}; do
+        ${lib.getExe buildah} manifest push --all --format ${format} "${manifestName}" "${targetProtocol}$NAME:$TAG"
       done
-      for NAME in ${builtins.toString allNames}; do
-        for TAG in ${builtins.toString tags}; do
-          ${lib.getExe buildah} manifest push --all --format ${format} "${manifestName}" "${targetProtocol}$NAME:$TAG"
-        done
-      done
-    '';
-  }
+    done
+  ''
