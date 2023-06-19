@@ -28,7 +28,7 @@
       (builtins.elemAt versionComponents 0)
     ]);
 in
-  writeShellScriptBin ''
+  writeShellScriptBin "docker-manifest" ''
     set -x # echo on
     if ${lib.getExe buildah} manifest exists "${manifestName}"; then
       ${lib.getExe buildah} manifest rm "${manifestName}"
