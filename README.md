@@ -38,7 +38,7 @@ We recommend to use environment variables for this purpose.
 For instance, when running in a GitHub action, you only have to provide a value for `VERSION` and then can use the following snippet:
 
 ```nix
-mkDockerManifest {
+dockerManifest = mkDockerManifest {
   branch = builtins.getEnv "GITHUB_REF_NAME";
   name = "ghcr.io/" + builtins.getEnv "GITHUB_REPOSITORY";
   version = builtins.getEnv "VERSION";
@@ -46,7 +46,39 @@ mkDockerManifest {
 }
 ```
 
-**Please note:** Nix can only read environment variables when run with the `--impure` flag (e.g., `nix run --impure .#mkDockerManifest`).
+**Please note:** Nix can only read environment variables when run with the `--impure` flag (e.g., `nix run --impure .#dockerManifest`).
+
+Here is a complete example for a GitHub action that is able to build an image for multiple architectures:
+
+```yaml
+on:
+  push:
+    branches: [main]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - uses: DeterminateSystems/nix-installer-action@v4
+        with:
+          extra-conf: |
+            extra-platforms = aarch64-linux
+      - uses: DeterminateSystems/magic-nix-cache-action@v2
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - run: nix run --impure .#dockerManifest
+        env:
+          VERSION: ${{ steps.semanticrelease.outputs.version }}
+```
 
 ## Advanced
 
