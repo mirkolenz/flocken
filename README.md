@@ -33,6 +33,21 @@ The function takes the following attrset as an argument:
 - `extraTags`: List of additional tags to be added to the manifest.
 - `name` (deprecated): Fully qualified name of the docker image (e.g. `ghcr.io/mirkolenz/flocken`).
 
+Some arguments (e.g., `version`) differ between invocations and thus need to be provided in a dynamic fashion.
+We recommend to use environment variables for this purpose.
+For instance, when running in a GitHub action, you only have to provide a value for `VERSION` and then can use the following snippet:
+
+```nix
+mkDockerManifest {
+  branch = builtins.getEnv "GITHUB_REF_NAME";
+  name = "ghcr.io/" + builtins.getEnv "GITHUB_REPOSITORY";
+  version = builtins.getEnv "VERSION";
+  images = with self.packages; [x86_64-linux.dockerImage aarch64-linux.dockerImage];
+}
+```
+
+**Please note:** Nix can only read environment variables when run with the `--impure` flag (e.g., `nix run --impure .#mkDockerManifest`).
+
 ## Advanced
 
 This repo uses the [nix-systems pattern](https://github.com/nix-systems/nix-systems), making it externally extensible.
