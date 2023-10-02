@@ -15,7 +15,6 @@
   ...
 }: let
   cleanVersion = lib.removePrefix "v" version;
-  versionComponents = lib.splitString "." cleanVersion;
   manifestName = "flocken";
   allNames = names ++ (lib.optional (name != "") name);
   allTags =
@@ -24,8 +23,8 @@
     ++ (lib.optional latest "latest")
     ++ (lib.optional (cleanVersion != "") cleanVersion)
     ++ (lib.optionals (cleanVersion != "" && !lib.hasInfix "-" cleanVersion) [
-      (lib.concatStringsSep "." (lib.sublist 0 2 versionComponents))
-      (builtins.elemAt versionComponents 0)
+      (lib.majorMinor cleanVersion)
+      (lib.major cleanVersion)
     ]);
 in
   assert (lib.assertMsg (builtins.length allNames > 0) "At least one name must be specified");
