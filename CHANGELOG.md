@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/mirkolenz/flocken/compare/v1.1.3...v1.1.4) (2023-10-02)
+
+
+### Bug Fixes
+
+* improve version handling ([da53417](https://github.com/mirkolenz/flocken/commit/da5341702daa7c267ad6b9d3b684f2bfefe6427c))
+
 ## [1.1.3](https://github.com/mirkolenz/flocken/compare/v1.1.2...v1.1.3) (2023-06-19)
 
 
