@@ -46,7 +46,8 @@ dockerManifest = mkDockerManifest {
 }
 ```
 
-**Please note:** Nix can only read environment variables when run with the `--impure` flag (e.g., `nix run --impure .#dockerManifest`).
+> [!warning]
+> Reading environment variables requires the `--impure` flag (e.g., `nix run --impure .#dockerManifest`).
 
 Here is a complete example for a GitHub action that is able to build an image for multiple architectures:
 
