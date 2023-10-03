@@ -4,6 +4,8 @@ Flocken (German for "flakes") is a collection of utilities for nix flakes.
 
 ## Usage
 
+The project supports semantic versioning, so we advise to pin the major version (e.g., `v1`) to avoid breaking changes.
+
 ```nix
 {
   inputs = {
