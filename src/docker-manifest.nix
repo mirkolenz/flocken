@@ -23,8 +23,8 @@
     ++ (lib.optional latest "latest")
     ++ (lib.optional (cleanVersion != "") cleanVersion)
     ++ (lib.optionals (cleanVersion != "" && !lib.hasInfix "-" cleanVersion) [
-      (lib.majorMinor cleanVersion)
-      (lib.major cleanVersion)
+      (lib.versions.majorMinor cleanVersion)
+      (lib.versions.major cleanVersion)
     ]);
 in
   assert (lib.assertMsg (builtins.length allNames > 0) "At least one name must be specified");
