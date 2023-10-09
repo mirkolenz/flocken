@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.5](https://github.com/mirkolenz/flocken/compare/v1.1.4...v1.1.5) (2023-10-09)
+
+
+### Bug Fixes
+
+* correctly import majorMinor from lib ([fb7d8dd](https://github.com/mirkolenz/flocken/commit/fb7d8dd71bd8699f9ae4f7d79f92ce0e6130ed2f))
+
 ## [1.1.4](https://github.com/mirkolenz/flocken/compare/v1.1.3...v1.1.4) (2023-10-02)
 
 
