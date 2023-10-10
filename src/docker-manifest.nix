@@ -10,7 +10,7 @@
   version ? "",
   sourceProtocol ? "docker-archive:",
   targetProtocol ? "docker://",
-  format ? "v2s2",
+  format ? "oci",
   extraTags ? [],
   ...
 }: let
