@@ -66,6 +66,7 @@ in
         else ""
       }
       done
+      ${lib.getExe buildah} manifest inspect "$manifest"
       for name in ${builtins.toString allNames}; do
         for tag in ${builtins.toString allTags}; do
           ${lib.getExe buildah} manifest push --all --format ${format} "$manifest" "${targetProtocol}$name:$tag"
