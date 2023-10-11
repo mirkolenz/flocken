@@ -11,6 +11,7 @@
   sourceProtocol ? "docker-archive:",
   targetProtocol ? "docker://",
   format ? "oci",
+  tags ? [],
   extraTags ? [],
   annotations ? {},
   ...
@@ -19,7 +20,8 @@
   manifestName = "flocken";
   allNames = names ++ (lib.optional (name != "") name);
   allTags =
-    extraTags
+    tags
+    ++ extraTags
     ++ (lib.optional (branch != "") branch)
     ++ (lib.optional latest "latest")
     ++ (lib.optional (cleanVersion != "") cleanVersion)
