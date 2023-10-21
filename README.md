@@ -4,14 +4,14 @@ Flocken (German for "flakes") is a collection of utilities for nix flakes.
 
 ## Usage
 
-The project supports semantic versioning, so we advise to pin the major version (e.g., `v1`) to avoid breaking changes.
+The project supports semantic versioning, so we advise to pin the major version (e.g., `v2`) to avoid breaking changes.
 
 ```nix
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flocken = {
-      url = "github:mirkolenz/flocken/v1";
+      url = "github:mirkolenz/flocken/v2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
