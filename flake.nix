@@ -24,6 +24,12 @@
           mkDockerManifest = pkgs.callPackage ./src/docker-manifest.nix;
         };
         packages = {
+          test = pkgs.buildEnv {
+            name = "test";
+            paths = with self'.packages; [
+              testDockerManifest
+            ];
+          };
           testDockerManifest = self'.legacyPackages.mkDockerManifest {
             github = {
               enable = true;
