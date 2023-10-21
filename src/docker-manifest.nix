@@ -2,40 +2,34 @@
   lib,
   writeShellScriptBin,
   buildah,
+  coreutils,
+  git,
   images,
-  name ? "",
-  names ? [],
-  branch ? "",
-  latest ? (builtins.elem branch ["main" "master"]),
-  version ? "",
+  version ? null,
+  branch ? null,
+  defaultBranch ? null,
+  tags ? [],
+  autoTags ? {},
+  registries ? {},
+  annotations ? {},
+  github ? {},
   sourceProtocol ? "docker-archive:",
   targetProtocol ? "docker://",
   format ? "oci",
-  tags ? [],
-  extraTags ? [],
-  annotations ? {},
-  ...
+  manifestName ? "flocken",
 }: let
-  cleanVersion = lib.removePrefix "v" version;
-  manifestName = "flocken";
-  allNames = names ++ (lib.optional (name != "") name);
-  allTags =
-    tags
-    ++ extraTags
-    ++ (lib.optional (branch != "") branch)
-    ++ (lib.optional latest "latest")
-    ++ (lib.optional (cleanVersion != "") cleanVersion)
-    ++ (lib.optionals (cleanVersion != "" && !lib.hasInfix "-" cleanVersion) [
-      (lib.versions.majorMinor cleanVersion)
-      (lib.versions.major cleanVersion)
-    ]);
+  isEnabled = x: builtins.hasAttr "enable" x && x.enable == true;
+  isEmpty = x: x == null || x == "" || x == {};
+  isNotEmpty = x: x != null && x != "" && x != {};
+  isPreRelease = x: lib.hasInfix "-" x;
+  optionalPath = path: attrset: lib.attrByPath (lib.splitString "." path) null attrset;
 
-  getLeaves = attrset: path:
+  getLeavesRecursive = attrset: path:
     if builtins.isAttrs attrset
     then
       builtins.concatLists (
         lib.mapAttrsToList
-        (key: value: getLeaves value (path ++ [key]))
+        (key: value: getLeavesRecursive value (path ++ [key]))
         attrset
       )
     else [
@@ -44,34 +38,172 @@
         value = attrset;
       }
     ];
-  parsedAnnotations = builtins.listToAttrs (getLeaves annotations []);
+  getLeaves = attrset: builtins.listToAttrs (getLeavesRecursive attrset []);
+
+  buildahExe = lib.getExe' buildah "buildah";
+
+  _github =
+    {
+      actor = builtins.getEnv "GITHUB_ACTOR";
+      repo = builtins.getEnv "GITHUB_REPOSITORY";
+      branch =
+        lib.optionalString
+        (builtins.getEnv "GITHUB_REF_TYPE" == "branch")
+        (builtins.getEnv "GITHUB_REF_NAME");
+      registry = "ghcr.io";
+      enableRegistry = true;
+      apiEndpoint = "https://api.github.com";
+      addMask = true;
+    }
+    // github;
+
+  githubData =
+    if isEnabled _github
+    then
+      builtins.fromJSON (builtins.readFile (builtins.fetchurl {
+        url = "${_github.apiEndpoint}/repos/${_github.repo}";
+      }))
+    else {};
+
+  defaultAnnotations = {
+    org.opencontainers.image = {
+      version = _version;
+      created = "$(${lib.getExe' coreutils "date"} --iso-8601=seconds)";
+      revision = "$(${lib.getExe git} rev-parse HEAD)";
+    };
+  };
+
+  githubAnnotations = lib.optionalAttrs (isEnabled _github) {
+    org.opencontainers.image = {
+      # https://github.com/opencontainers/image-spec/blob/main/annotations.md
+      authors = optionalPath "owner.html_url" githubData;
+      url =
+        if (optionalPath "homepage" githubData) != null
+        then githubData.homepage
+        else optionalPath "html_url" githubData;
+      source = optionalPath "html_url" githubData;
+      vendor = optionalPath "owner.login" githubData;
+      licenses = optionalPath "license.spdx_id" githubData;
+      title = optionalPath "name" githubData;
+      description = optionalPath "description" githubData;
+    };
+  };
+
+  _defaultBranch =
+    if (optionalPath "default_branch" githubData) != null
+    then githubData.default_branch
+    else if isNotEmpty defaultBranch
+    then defaultBranch
+    else "main";
+
+  _branch =
+    if isNotEmpty _github.branch
+    then _github.branch
+    else branch;
+
+  defaultRegistries = {};
+
+  githubRegistries = {
+    ${_github.registry} = {
+      enable = _github.enable && _github.enableRegistry;
+      repo = _github.repo;
+      username = _github.actor;
+      password = _github.token;
+    };
+  };
+
+  secretsPrefix =
+    if isEnabled _github && _github.addMask
+    then "::add-mask::"
+    else "";
+
+  _version =
+    if isNotEmpty version
+    then lib.removePrefix "v" version
+    else null;
+
+  defaultAutoTags = {
+    branch = true;
+    latest = true;
+    version = true;
+    majorMinor = true;
+    major = true;
+  };
+
+  _autoTags = defaultAutoTags // autoTags;
+
+  _tags = lib.unique (
+    tags
+    ++ (lib.optional (_autoTags.branch && isNotEmpty _branch) _branch)
+    ++ (lib.optional (_autoTags.latest && _branch == _defaultBranch) "latest")
+    ++ (lib.optional (_autoTags.version && isNotEmpty _version) _version)
+    ++ (lib.optional (_autoTags.majorMinor && isNotEmpty _version && !isPreRelease _version) (lib.versions.majorMinor _version))
+    ++ (lib.optional (_autoTags.major && isNotEmpty _version && !isPreRelease _version) (lib.versions.major _version))
+  );
+
+  _annotations =
+    lib.filterAttrs
+    (key: value: isNotEmpty value)
+    (
+      builtins.foldl'
+      lib.recursiveUpdate
+      (getLeaves defaultAnnotations)
+      (builtins.map getLeaves [githubAnnotations annotations])
+    );
+
+  _registries =
+    lib.filterAttrs
+    (key: value: isNotEmpty value && value.enable == true)
+    (
+      builtins.foldl'
+      lib.recursiveUpdate
+      defaultRegistries
+      [githubRegistries registries]
+    );
 in
-  assert (lib.assertMsg (builtins.length allNames > 0) "At least one name must be specified");
-  assert (lib.assertMsg (builtins.length allTags > 0) "At least one tag must be specified");
+  assert (lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified");
+  assert (lib.assertMsg (!(_github.enable && isEmpty _github.actor && isEmpty _github.repo)) "The GitHub actor and/or repo are empty");
     writeShellScriptBin "docker-manifest" ''
       set -x # echo on
-      if ${lib.getExe buildah} manifest exists "${manifestName}"; then
-        ${lib.getExe buildah} manifest rm "${manifestName}"
+
+      if ${buildahExe} manifest exists "${manifestName}"; then
+        ${buildahExe} manifest rm "${manifestName}"
       fi
-      manifest=$(${lib.getExe buildah} manifest create "${manifestName}")
+
+      manifest=$(${buildahExe} manifest create "${manifestName}")
+
       for image in ${builtins.toString images}; do
-        manifestOutput=$(${lib.getExe buildah} manifest add "$manifest" "${sourceProtocol}$image")
+        manifestOutput=$(${buildahExe} manifest add "$manifest" "${sourceProtocol}$image")
         ${
-        if builtins.length (builtins.attrNames parsedAnnotations) > 0
+        if builtins.length (builtins.attrNames _annotations) > 0
         then ''
           manifestSplit=($manifestOutput)
           digest=''${manifestSplit[1]}
-          ${lib.getExe buildah} manifest annotate \
-            ${builtins.toString (lib.mapAttrsToList (key: value: "--annotation \"${key}=${value}\"") parsedAnnotations)} \
+          ${buildahExe} manifest annotate \
+            ${builtins.toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)} \
             "$manifest" "$digest"
         ''
         else ""
       }
       done
-      ${lib.getExe buildah} manifest inspect "$manifest"
-      for name in ${builtins.toString allNames}; do
-        for tag in ${builtins.toString allTags}; do
-          ${lib.getExe buildah} manifest push --all --format ${format} "$manifest" "${targetProtocol}$name:$tag"
-        done
-      done
+
+      ${buildahExe} manifest inspect "$manifest"
+
+      ${lib.concatLines (lib.mapAttrsToList
+        (registryName: registryParams: ''
+          ${buildahExe} login \
+            --username "${registryParams.username}" \
+            --password "${secretsPrefix}${registryParams.password}" \
+            "${registryName}"
+
+          for tag in ${builtins.toString _tags}; do
+            ${buildahExe} manifest push --all \
+              --format ${format} \
+              "$manifest" \
+              "${targetProtocol}${registryName}/${registryParams.repo}:$tag"
+          done
+
+          ${buildahExe} logout "${registryName}"
+        '')
+        _registries)}
     ''

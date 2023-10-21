@@ -27,14 +27,31 @@ Create and push a Docker manifest to a registry.
 This is particularly useful for multi-arch images.
 The function takes the following attrset as an argument:
 
-- `images`: List of Docker images to be added to the manifest. Can for instance be produced using `dockerTools.buildLayeredImage`. _Note:_ This should be a list of identical images for different architectures.
-- `name`: Fully qualified name of the docker image (e.g. `ghcr.io/mirkolenz/flocken`). Merged with `names` if provided.
-- `names`: List of fully qualified names of the docker image (e.g. `["ghcr.io/mirkolenz/flocken" "docker.io/mirkolenz/flocken"]`).
-- `branch`: Name of the git branch (e.g. `main`) that is added to the list of tags.
-- `latest`: Boolean indicating whether the `latest` tag should be added to the list of tags. If branch is `main` or `master`, this is set to `true` by default.
-- `version`: Semantic version of the image (e.g. `v1.0.0` or `1.0.0`). The version as well as its major and minor components (`1.0` and `1`) are added to the list of tags.
+- `images` (required): List of Docker images to be added to the manifest. Can for instance be produced using `dockerTools.buildLayeredImage`. _Note:_ This should be a list of identical images for different architectures.
+- `version`: Semantic version of the image (e.g., `v1.0.0` or `1.0.0`).
+- `branch`: Name of the git branch (e.g., `main`). Defaults to the environment variable `GITHUB_REF_NAME` in GitHub actions if `GITHUB_REF_TYPE == "branch"`.
+- `defaultBranch`: Name of the git branch that is used as default for the `latest` tag. Defaults to `main`. If the GitHub option is enabled, this option is set automatically.
 - `tags`: List of additional tags to be added to the manifest.
-- `annotations`: List of annotations to be added to the manifest.
+- `autoTags`: Attrset with configuration for tags that are generated automatically:
+  - `branch`: Boolean indicating whether the branch name should be added as a tag.
+  - `latest`: Boolean indicating whether the `latest` tag should be added as a tag. If `branch == defaultBranch`, this is set to `true` by default.
+  - `version`: Boolean indicating whether the version should be added as a tag.
+  - `majorMinor`: Boolean indicating whether the major and minor version (e.g., `1.0`) should be added as a tag.
+  - `major`: Boolean indicating whether the major version (e.g., `1`) should be added as a tag.
+- `registries`: Attrset with configuration for the Docker registries to be used. The key is the name of the registry (e.g., `ghcr.io`) and the value is an attrset with the following attributes:
+  - `enable`: Boolean indicating whether the registry should be used.
+  - `repo`: Fully qualified name of the Docker image in the registry (e.g., `mirkolenz/flocken`).
+  - `username`: Username for pushing to the registry.
+  - `password`: Password for pushing to the registry.
+- `annotations`: List of annotations to be added to the manifest. If the GitHub option is enabled, most `org.opencontainers.image` annotations are added automatically for public repositories.
+- `github`: Attrset with configuration for GitHub. The following attributes are supported:
+  - `enable`: Boolean indicating whether the GitHub defaults are applied.
+  - `token`: GitHub access token. Used as default value for `registries."ghcr.io".password`.
+  - `actor`: GitHub actor. Used as default value for `registries."ghcr.io".username`. Defaults to environment variable `GITHUB_ACTOR` in GitHub actions.
+  - `repo`: Full name of the GitHub repository (e.g., `mirkolenz/flocken`). Used as default value for `registries."ghcr.io".repo`. Defaults to environment variable `GITHUB_REPOSITORY` in GitHub actions.
+  - `registry`: Name of the container registry. Can be used to override the default `ghcr.io`.
+  - `apiEndpoint`: URL of the GitHub API endpoint. Can be used to override the default `https://api.github.com`.
+  - `addMask`: Boolean indicating whether the GitHub action should hide the provided token in the logs. Defaults to `true`.
 
 Some arguments (e.g., `version`) differ between invocations and thus need to be provided in a dynamic fashion.
 We recommend to use environment variables for this purpose.
@@ -42,8 +59,10 @@ For instance, when running in a GitHub action, you only have to provide a value 
 
 ```nix
 dockerManifest = mkDockerManifest {
-  branch = builtins.getEnv "GITHUB_REF_NAME";
-  name = "ghcr.io/" + builtins.getEnv "GITHUB_REPOSITORY";
+  github = {
+    enable = true;
+    token = builtins.getEnv "GH_TOKEN";
+  };
   version = builtins.getEnv "VERSION";
   images = with self.packages; [x86_64-linux.dockerImage aarch64-linux.dockerImage];
 }
@@ -69,19 +88,15 @@ jobs:
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
-      - uses: DeterminateSystems/nix-installer-action@v4
+      - uses: DeterminateSystems/nix-installer-action@v6
         with:
           extra-conf: |
             extra-platforms = aarch64-linux
       - uses: DeterminateSystems/magic-nix-cache-action@v2
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
       - run: nix run --impure .#dockerManifest
         env:
-          VERSION: ${{ steps.semanticrelease.outputs.version }}
+          VERSION: "1.0.0"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Advanced

@@ -23,23 +23,18 @@
         legacyPackages = {
           mkDockerManifest = pkgs.callPackage ./src/docker-manifest.nix;
         };
-        apps = {
-          checkDockerManifest = {
-            type = "app";
-            program = lib.getExe (self'.legacyPackages.mkDockerManifest {
-              branch = "main";
-              name = "ghcr.io/mirkolenz/flocken";
-              version = "1.0.0";
-              images = with self.packages; [x86_64-linux.dummyDocker];
-              annotations.org.opencontainers.image = {
-                source = "https://github.com/mirkolenz/flocken";
-                description = "Flocken (German for 'flakes') is a collection of utilities for nix flakes.";
-                licenses = "MIT";
-              };
-            });
-          };
-        };
         packages = {
+          testDockerManifest = self'.legacyPackages.mkDockerManifest {
+            github = {
+              enable = true;
+              repo = "mirkolenz/flocken";
+              actor = "mirkolenz";
+              token = "";
+            };
+            branch = "main";
+            version = "1.0.0";
+            images = with self.packages; [x86_64-linux.dummyDocker];
+          };
           dummyDocker = pkgs.dockerTools.buildImage {
             name = "dummy";
           };
