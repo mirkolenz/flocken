@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/mirkolenz/flocken/compare/v2.0.2...v2.0.3) (2023-10-23)
+
+
+### Bug Fixes
+
+* backport getExe' from unstable ([316eb99](https://github.com/mirkolenz/flocken/commit/316eb99ba285596f439c2196e66a5eacc9591bd1))
+
 ## [2.0.2](https://github.com/mirkolenz/flocken/compare/v2.0.1...v2.0.2) (2023-10-23)
 
 
