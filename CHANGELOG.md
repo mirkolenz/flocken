@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/mirkolenz/flocken/compare/v2.0.1...v2.0.2) (2023-10-23)
+
+
+### Bug Fixes
+
+* use the same timestamp for all digests ([04a72f6](https://github.com/mirkolenz/flocken/commit/04a72f60b22f0390806f3166a5a6c065ec6c1069))
+
 ## [2.0.1](https://github.com/mirkolenz/flocken/compare/v2.0.0...v2.0.1) (2023-10-23)
 
 
