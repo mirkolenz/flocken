@@ -51,7 +51,6 @@ The function takes the following attrset as an argument:
   - `repo`: Full name of the GitHub repository (e.g., `mirkolenz/flocken`). Used as default value for `registries."ghcr.io".repo`. Defaults to environment variable `GITHUB_REPOSITORY` in GitHub actions.
   - `registry`: Name of the container registry. Can be used to override the default `ghcr.io`.
   - `apiEndpoint`: URL of the GitHub API endpoint. Can be used to override the default `https://api.github.com`.
-  - `addMask`: Boolean indicating whether the GitHub action should hide the provided token in the logs. Defaults to `true`.
 
 Some arguments (e.g., `version`) differ between invocations and thus need to be provided in a dynamic fashion.
 We recommend to use environment variables for this purpose.

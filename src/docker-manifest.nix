@@ -53,7 +53,6 @@
       registry = "ghcr.io";
       enableRegistry = true;
       apiEndpoint = "https://api.github.com";
-      addMask = true;
     }
     // github;
 
@@ -111,11 +110,6 @@
       password = _github.token;
     };
   };
-
-  secretsPrefix =
-    if isEnabled _github && _github.addMask
-    then "::add-mask::"
-    else "";
 
   _version =
     if isNotEmpty version
@@ -191,10 +185,13 @@ in
 
       ${lib.concatLines (lib.mapAttrsToList
         (registryName: registryParams: ''
+          set +x # echo off
+          echo "buildah login ${registryName}"
           ${buildahExe} login \
             --username "${registryParams.username}" \
-            --password "${secretsPrefix}${registryParams.password}" \
+            --password "${registryParams.password}" \
             "${registryName}"
+          set -x # echo on
 
           for tag in ${builtins.toString _tags}; do
             ${buildahExe} manifest push --all \
