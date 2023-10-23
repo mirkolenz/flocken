@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0](https://github.com/mirkolenz/flocken/compare/v1.1.5...v2.0.0) (2023-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* The arguments and the inner logic of `mkDockerManifest` have been rewritten from scratch. The function now also handles the login to the Docker registries. Instead of providing the name (or names) of an image, you now define them for each registry individually. You can now opt out of all automatically assigned tags. There is a new GitHub integration that fetches most information automatically when run in a GitHub action. Please refer to the documentation for more details about the new arguments.
+
+* feat!(mkDockerManifest): rewrite logic and args ([4c07c14](https://github.com/mirkolenz/flocken/commit/4c07c142ef98f129ced4838d7325991dce468268))
+
+
+### Bug Fixes
+
+* **manifest:** add tags parameter ([9554789](https://github.com/mirkolenz/flocken/commit/9554789b3420b168efccb82d454a6d0f0cc85848))
+* **manifest:** output result for easier debugging ([a63e594](https://github.com/mirkolenz/flocken/commit/a63e5942fc2b1f711dfca7634bd5e482b50145cb))
+* use correct variable naming again ([39d96e6](https://github.com/mirkolenz/flocken/commit/39d96e6d179b50e76f74dcc6dfc15ee4dde59dd8))
+* use oci as default manifest format ([69a3e12](https://github.com/mirkolenz/flocken/commit/69a3e12442e8c3e1262a7d81b8573fb829e523cc))
+
 ## [1.1.5](https://github.com/mirkolenz/flocken/compare/v1.1.4...v1.1.5) (2023-10-09)
 
 
