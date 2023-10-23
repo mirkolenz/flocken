@@ -45,7 +45,7 @@ The function takes the following attrset as an argument:
   - `password`: Password for pushing to the registry.
 - `annotations`: List of annotations to be added to the manifest. If the GitHub option is enabled, most `org.opencontainers.image` annotations are added automatically for public repositories.
 - `github`: Attrset with configuration for GitHub. The following attributes are supported:
-  - `enable`: Boolean indicating whether the GitHub defaults are applied.
+  - `enable`: Boolean indicating whether the GitHub defaults are applied. If set to `true`, you need to run nix with the `--impure` flag in order to access the GitHub API.
   - `token`: GitHub access token. Used as default value for `registries."ghcr.io".password`.
   - `actor`: GitHub actor. Used as default value for `registries."ghcr.io".username`. Defaults to environment variable `GITHUB_ACTOR` in GitHub actions.
   - `repo`: Full name of the GitHub repository (e.g., `mirkolenz/flocken`). Used as default value for `registries."ghcr.io".repo`. Defaults to environment variable `GITHUB_REPOSITORY` in GitHub actions.
@@ -55,7 +55,7 @@ The function takes the following attrset as an argument:
 
 Some arguments (e.g., `version`) differ between invocations and thus need to be provided in a dynamic fashion.
 We recommend to use environment variables for this purpose.
-For instance, when running in a GitHub action, you only have to provide a value for `VERSION` and then can use the following snippet:
+For instance, when running in a GitHub action, you only have to provide a value for `VERSION` and `GH_TOKEN` and then can use the following snippet:
 
 ```nix
 dockerManifest = mkDockerManifest {
@@ -96,7 +96,7 @@ jobs:
       - run: nix run --impure .#dockerManifest
         env:
           VERSION: "1.0.0"
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 ```
 
 ## Advanced
