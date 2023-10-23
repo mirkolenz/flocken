@@ -67,7 +67,7 @@
   defaultAnnotations = {
     org.opencontainers.image = {
       version = _version;
-      created = "$(${lib.getExe' coreutils "date"} --iso-8601=seconds)";
+      created = ''"$datetimeNow"'';
       revision = "$(${lib.getExe git} rev-parse HEAD)";
     };
   };
@@ -159,6 +159,8 @@ in
   assert (lib.assertMsg (!(_github.enable && isEmpty _github.actor && isEmpty _github.repo)) "The GitHub actor and/or repo are empty");
     writeShellScriptBin "docker-manifest" ''
       set -x # echo on
+
+      datetimeNow="$(${lib.getExe' coreutils "date"} --iso-8601=seconds)"
 
       if ${buildahExe} manifest exists "${manifestName}"; then
         ${buildahExe} manifest rm "${manifestName}"
