@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/mirkolenz/flocken/compare/v2.0.0...v2.0.1) (2023-10-23)
+
+
+### Bug Fixes
+
+* properly handle buildah login with mask ([c084b08](https://github.com/mirkolenz/flocken/commit/c084b08bc3ba3badddf5c6eee96d462d4188532f))
+
 ## [2.0.0](https://github.com/mirkolenz/flocken/compare/v1.1.5...v2.0.0) (2023-10-23)
 
 
