@@ -9,7 +9,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@v6
+      - uses: DeterminateSystems/nix-installer-action@v7
       - uses: DeterminateSystems/magic-nix-cache-action@v2
       - run: nix build .#test --impure
   release:
