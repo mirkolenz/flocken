@@ -18,9 +18,6 @@
   format ? "oci",
   manifestName ? "flocken",
 }: let
-  # Not available in 23.05, so we redefine it here
-  getExe' = x: y: "${lib.getBin x}/bin/${y}";
-
   isEnabled = x: builtins.hasAttr "enable" x && x.enable == true;
   isEmpty = x: x == null || x == "" || x == {};
   isNotEmpty = x: x != null && x != "" && x != {};
@@ -43,7 +40,7 @@
     ];
   getLeaves = attrset: builtins.listToAttrs (getLeavesRecursive attrset []);
 
-  buildahExe = getExe' buildah "buildah";
+  buildahExe = lib.getExe' buildah "buildah";
 
   _github =
     {
@@ -163,7 +160,7 @@ in
     writeShellScriptBin "docker-manifest" ''
       set -x # echo on
 
-      datetimeNow="$(${getExe' coreutils "date"} --iso-8601=seconds)"
+      datetimeNow="$(${lib.getExe' coreutils "date"} --iso-8601=seconds)"
 
       if ${buildahExe} manifest exists "${manifestName}"; then
         ${buildahExe} manifest rm "${manifestName}"
