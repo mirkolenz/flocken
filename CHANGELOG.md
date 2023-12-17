@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.4](https://github.com/mirkolenz/flocken/compare/v2.0.3...v2.0.4) (2023-12-17)
+
+
+### Bug Fixes
+
+* remove getExe' backport after 23.11 release ([53317fd](https://github.com/mirkolenz/flocken/commit/53317fd26cd50c6347101fc3c0d3370438496745))
+
 ## [2.0.3](https://github.com/mirkolenz/flocken/compare/v2.0.2...v2.0.3) (2023-10-23)
 
 
