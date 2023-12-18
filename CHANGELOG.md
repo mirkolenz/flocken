@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0](https://github.com/mirkolenz/flocken/compare/v2.0.4...v2.1.0) (2023-12-18)
+
+
+### Features
+
+* expose custom lib via attribute and overlay ([bef593a](https://github.com/mirkolenz/flocken/commit/bef593a69f1baf851f98aa478beb574d7793456e))
+
+
+### Bug Fixes
+
+* properly use lib in docker-manifest ([f07517c](https://github.com/mirkolenz/flocken/commit/f07517c6cec605dc56074927167124def06b881f))
+
 ## [2.0.4](https://github.com/mirkolenz/flocken/compare/v2.0.3...v2.0.4) (2023-12-17)
 
 
