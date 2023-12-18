@@ -4,6 +4,7 @@
   buildah,
   coreutils,
   git,
+}: {
   images,
   version ? null,
   branch ? null,
@@ -18,32 +19,14 @@
   format ? "oci",
   manifestName ? "flocken",
 }: let
-  isEnabled = x: builtins.hasAttr "enable" x && x.enable == true;
-  isEmpty = x: x == null || x == "" || x == {};
-  isNotEmpty = x: x != null && x != "" && x != {};
   isPreRelease = x: lib.hasInfix "-" x;
-  optionalPath = path: attrset: lib.attrByPath (lib.splitString "." path) null attrset;
-
-  getLeavesRecursive = attrset: path:
-    if builtins.isAttrs attrset
-    then
-      builtins.concatLists (
-        lib.mapAttrsToList
-        (key: value: getLeavesRecursive value (path ++ [key]))
-        attrset
-      )
-    else [
-      {
-        name = builtins.concatStringsSep "." path;
-        value = attrset;
-      }
-    ];
-  getLeaves = attrset: builtins.listToAttrs (getLeavesRecursive attrset []);
+  optionalAttrPath = path: attrset: lib.custom.attrByDottedPath path null attrset;
 
   buildahExe = lib.getExe' buildah "buildah";
 
   _github =
     {
+      enable = false;
       actor = builtins.getEnv "GITHUB_ACTOR";
       repo = builtins.getEnv "GITHUB_REPOSITORY";
       branch =
@@ -57,7 +40,7 @@
     // github;
 
   githubData =
-    if isEnabled _github
+    if _github.enable
     then
       builtins.fromJSON (builtins.readFile (builtins.fetchurl {
         url = "${_github.apiEndpoint}/repos/${_github.repo}";
@@ -72,31 +55,31 @@
     };
   };
 
-  githubAnnotations = lib.optionalAttrs (isEnabled _github) {
+  githubAnnotations = lib.optionalAttrs (_github.enable) {
     org.opencontainers.image = {
       # https://github.com/opencontainers/image-spec/blob/main/annotations.md
-      authors = optionalPath "owner.html_url" githubData;
+      authors = optionalAttrPath "owner.html_url" githubData;
       url =
-        if (optionalPath "homepage" githubData) != null
+        if (optionalAttrPath "homepage" githubData) != null
         then githubData.homepage
-        else optionalPath "html_url" githubData;
-      source = optionalPath "html_url" githubData;
-      vendor = optionalPath "owner.login" githubData;
-      licenses = optionalPath "license.spdx_id" githubData;
-      title = optionalPath "name" githubData;
-      description = optionalPath "description" githubData;
+        else optionalAttrPath "html_url" githubData;
+      source = optionalAttrPath "html_url" githubData;
+      vendor = optionalAttrPath "owner.login" githubData;
+      licenses = optionalAttrPath "license.spdx_id" githubData;
+      title = optionalAttrPath "name" githubData;
+      description = optionalAttrPath "description" githubData;
     };
   };
 
   _defaultBranch =
-    if (optionalPath "default_branch" githubData) != null
+    if (optionalAttrPath "default_branch" githubData) != null
     then githubData.default_branch
-    else if isNotEmpty defaultBranch
+    else if lib.custom.isNotEmpty defaultBranch
     then defaultBranch
     else "main";
 
   _branch =
-    if isNotEmpty _github.branch
+    if lib.custom.isNotEmpty _github.branch
     then _github.branch
     else branch;
 
@@ -112,7 +95,7 @@
   };
 
   _version =
-    if isNotEmpty version
+    if lib.custom.isNotEmpty version
     then lib.removePrefix "v" version
     else null;
 
@@ -128,26 +111,26 @@
 
   _tags = lib.unique (
     tags
-    ++ (lib.optional (_autoTags.branch && isNotEmpty _branch) _branch)
+    ++ (lib.optional (_autoTags.branch && lib.custom.isNotEmpty _branch) _branch)
     ++ (lib.optional (_autoTags.latest && _branch == _defaultBranch) "latest")
-    ++ (lib.optional (_autoTags.version && isNotEmpty _version) _version)
-    ++ (lib.optional (_autoTags.majorMinor && isNotEmpty _version && !isPreRelease _version) (lib.versions.majorMinor _version))
-    ++ (lib.optional (_autoTags.major && isNotEmpty _version && !isPreRelease _version) (lib.versions.major _version))
+    ++ (lib.optional (_autoTags.version && lib.custom.isNotEmpty _version) _version)
+    ++ (lib.optional (_autoTags.majorMinor && lib.custom.isNotEmpty _version && !isPreRelease _version) (lib.versions.majorMinor _version))
+    ++ (lib.optional (_autoTags.major && lib.custom.isNotEmpty _version && !isPreRelease _version) (lib.versions.major _version))
   );
 
   _annotations =
     lib.filterAttrs
-    (key: value: isNotEmpty value)
+    (key: value: lib.custom.isNotEmpty value)
     (
       builtins.foldl'
       lib.recursiveUpdate
-      (getLeaves defaultAnnotations)
-      (builtins.map getLeaves [githubAnnotations annotations])
+      (lib.custom.getLeaves defaultAnnotations)
+      (builtins.map lib.custom.getLeaves [githubAnnotations annotations])
     );
 
   _registries =
     lib.filterAttrs
-    (key: value: isNotEmpty value && value.enable == true)
+    (key: value: lib.custom.isNotEmpty value && value.enable == true)
     (
       builtins.foldl'
       lib.recursiveUpdate
@@ -156,7 +139,7 @@
     );
 in
   assert (lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified");
-  assert (lib.assertMsg (!(_github.enable && isEmpty _github.actor && isEmpty _github.repo)) "The GitHub actor and/or repo are empty");
+  assert (lib.assertMsg (!(_github.enable && lib.custom.isEmpty _github.actor && lib.custom.isEmpty _github.repo)) "The GitHub actor and/or repo are empty");
     writeShellScriptBin "docker-manifest" ''
       set -x # echo on
 
