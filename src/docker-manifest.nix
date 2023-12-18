@@ -20,7 +20,7 @@
   manifestName ? "flocken",
 }: let
   isPreRelease = x: lib.hasInfix "-" x;
-  optionalAttrPath = path: attrset: lib.custom.attrByDottedPath path null attrset;
+  optionalAttrPath = path: attrset: lib.flocken.attrByDottedPath path null attrset;
 
   buildahExe = lib.getExe' buildah "buildah";
 
@@ -74,12 +74,12 @@
   _defaultBranch =
     if (optionalAttrPath "default_branch" githubData) != null
     then githubData.default_branch
-    else if lib.custom.isNotEmpty defaultBranch
+    else if lib.flocken.isNotEmpty defaultBranch
     then defaultBranch
     else "main";
 
   _branch =
-    if lib.custom.isNotEmpty _github.branch
+    if lib.flocken.isNotEmpty _github.branch
     then _github.branch
     else branch;
 
@@ -95,7 +95,7 @@
   };
 
   _version =
-    if lib.custom.isNotEmpty version
+    if lib.flocken.isNotEmpty version
     then lib.removePrefix "v" version
     else null;
 
@@ -111,26 +111,26 @@
 
   _tags = lib.unique (
     tags
-    ++ (lib.optional (_autoTags.branch && lib.custom.isNotEmpty _branch) _branch)
+    ++ (lib.optional (_autoTags.branch && lib.flocken.isNotEmpty _branch) _branch)
     ++ (lib.optional (_autoTags.latest && _branch == _defaultBranch) "latest")
-    ++ (lib.optional (_autoTags.version && lib.custom.isNotEmpty _version) _version)
-    ++ (lib.optional (_autoTags.majorMinor && lib.custom.isNotEmpty _version && !isPreRelease _version) (lib.versions.majorMinor _version))
-    ++ (lib.optional (_autoTags.major && lib.custom.isNotEmpty _version && !isPreRelease _version) (lib.versions.major _version))
+    ++ (lib.optional (_autoTags.version && lib.flocken.isNotEmpty _version) _version)
+    ++ (lib.optional (_autoTags.majorMinor && lib.flocken.isNotEmpty _version && !isPreRelease _version) (lib.versions.majorMinor _version))
+    ++ (lib.optional (_autoTags.major && lib.flocken.isNotEmpty _version && !isPreRelease _version) (lib.versions.major _version))
   );
 
   _annotations =
     lib.filterAttrs
-    (key: value: lib.custom.isNotEmpty value)
+    (key: value: lib.flocken.isNotEmpty value)
     (
       builtins.foldl'
       lib.recursiveUpdate
-      (lib.custom.getLeaves defaultAnnotations)
-      (builtins.map lib.custom.getLeaves [githubAnnotations annotations])
+      (lib.flocken.getLeaves defaultAnnotations)
+      (builtins.map lib.flocken.getLeaves [githubAnnotations annotations])
     );
 
   _registries =
     lib.filterAttrs
-    (key: value: lib.custom.isNotEmpty value && value.enable == true)
+    (key: value: lib.flocken.isNotEmpty value && value.enable == true)
     (
       builtins.foldl'
       lib.recursiveUpdate
@@ -139,7 +139,7 @@
     );
 in
   assert (lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified");
-  assert (lib.assertMsg (!(_github.enable && lib.custom.isEmpty _github.actor && lib.custom.isEmpty _github.repo)) "The GitHub actor and/or repo are empty");
+  assert (lib.assertMsg (!(_github.enable && lib.flocken.isEmpty _github.actor && lib.flocken.isEmpty _github.repo)) "The GitHub actor and/or repo are empty");
     writeShellScriptBin "docker-manifest" ''
       set -x # echo on
 
