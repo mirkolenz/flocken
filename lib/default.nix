@@ -1,14 +1,17 @@
 lib: rec {
   getModules = dir: let
-    toImport = name: value: dir + ("/" + name);
-    filterPaths = name: value:
+    mkImport = name: "${dir}/${name}";
+    filterPath = name: type:
       !lib.hasPrefix "_" name
       && (
-        (value == "regular" && lib.hasSuffix ".nix" name && name != "default.nix")
-        || value == "directory"
+        (type == "regular" && lib.hasSuffix ".nix" name && name != "default.nix")
+        || (type == "directory" && builtins.pathExists "${mkImport name}/default.nix")
       );
+    dirContents = builtins.readDir dir;
+    filteredContents = lib.filterAttrs filterPath dirContents;
+    filteredPaths = builtins.attrNames filteredContents;
   in
-    lib.mapAttrsToList toImport (lib.filterAttrs filterPaths (builtins.readDir dir));
+    builtins.map mkImport filteredPaths;
   optionalPath = path:
     if builtins.pathExists path
     then [path]
