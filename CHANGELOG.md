@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/mirkolenz/flocken/compare/v2.1.0...v2.1.1) (2023-12-31)
+
+
+### Bug Fixes
+
+* **lib:** do not import dirs without default.nix ([37aa080](https://github.com/mirkolenz/flocken/commit/37aa080f303903062fe5d509d28a3a231c0d7536))
+
 ## [2.1.0](https://github.com/mirkolenz/flocken/compare/v2.0.4...v2.1.0) (2023-12-18)
 
 
