@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/mirkolenz/flocken/compare/v2.1.1...v2.1.2) (2024-01-01)
+
+
+### Bug Fixes
+
+* **lib:** properly construct module paths ([f5da985](https://github.com/mirkolenz/flocken/commit/f5da9851accccf6bea2e8366f6cc5699d42252ed))
+
 ## [2.1.1](https://github.com/mirkolenz/flocken/compare/v2.1.0...v2.1.1) (2023-12-31)
 
 
