@@ -1,11 +1,13 @@
 lib: rec {
   getModules = dir: let
-    mkImport = name: "${dir}/${name}";
+    # Cannot use "${dir}/${name}" since that would return a string and not a path
+    # dir + "/${name}" would be valid as well
+    mkImport = name: dir + ("/" + name);
     filterPath = name: type:
       !lib.hasPrefix "_" name
       && (
         (type == "regular" && lib.hasSuffix ".nix" name && name != "default.nix")
-        || (type == "directory" && builtins.pathExists "${mkImport name}/default.nix")
+        || (type == "directory" && builtins.pathExists (mkImport "${name}/default.nix"))
       );
     dirContents = builtins.readDir dir;
     filteredContents = lib.filterAttrs filterPath dirContents;
