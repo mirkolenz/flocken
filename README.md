@@ -60,7 +60,7 @@ For instance, when running in a GitHub action, you only have to provide a value 
 dockerManifest = mkDockerManifest {
   github = {
     enable = true;
-    token = builtins.getEnv "GH_TOKEN";
+    token = "$GH_TOKEN";
   };
   version = builtins.getEnv "VERSION";
   images = with self.packages; [x86_64-linux.dockerImage aarch64-linux.dockerImage];
@@ -69,6 +69,8 @@ dockerManifest = mkDockerManifest {
 
 > [!warning]
 > Reading environment variables requires the `--impure` flag (e.g., `nix run --impure .#dockerManifest`).
+> Do not use `builtins.getEnv` to read secrets, as this would expose them in the Nix store and could lead to uploading them to binary caches.
+> For tokens/password, pass the name of the environment variable instead.
 
 Here is a complete example for a GitHub action that is able to build an image for multiple architectures:
 
