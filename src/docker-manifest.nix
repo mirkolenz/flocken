@@ -3,6 +3,7 @@
   writeShellScriptBin,
   buildah,
   coreutils,
+  crane,
   git,
 }: {
   images,
@@ -23,6 +24,7 @@
   optionalAttrPath = path: attrset: lib.flocken.attrByDottedPath path null attrset;
 
   buildahExe = lib.getExe' buildah "buildah";
+  craneExe = lib.getExe' crane "crane";
 
   _github =
     {
@@ -176,16 +178,26 @@ in
             --username "${registryParams.username}" \
             --password "${registryParams.password}" \
             "${registryName}"
+          echo "crane login ${registryName}"
+          ${craneExe} auth login "${registryName}" \
+            --username "${registryParams.username}" \
+            --password "${registryParams.password}"
           set -x # echo on
 
+          firstTag=${builtins.head _tags}
+          ${buildahExe} manifest push --all \
+            --format ${format} \
+            "$manifest" \
+            "${targetProtocol}${registryName}/${registryParams.repo}:$firstTag"
+
           for tag in ${builtins.toString _tags}; do
-            ${buildahExe} manifest push --all \
-              --format ${format} \
-              "$manifest" \
-              "${targetProtocol}${registryName}/${registryParams.repo}:$tag"
+            ${craneExe} tag \
+              "${registryName}/${registryParams.repo}:$firstTag" \
+              "$tag"
           done
 
           ${buildahExe} logout "${registryName}"
+          ${craneExe} auth logout "${registryName}"
         '')
         _registries)}
     ''
