@@ -190,6 +190,8 @@ in
             "$manifest" \
             "${targetProtocol}${registryName}/${registryParams.repo}:${firstTag}"
 
+          # `crane tag` is idempotent so it is not necessary to use 
+          # `builtins.tail` to remove the first tag from `_tags`
           for tag in ${builtins.toString _tags}; do
             ${craneExe} tag \
               "${registryName}/${registryParams.repo}:${firstTag}" \
