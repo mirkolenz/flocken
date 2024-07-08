@@ -119,6 +119,7 @@
     ++ (lib.optional (_autoTags.majorMinor && lib.flocken.isNotEmpty _version && !isPreRelease _version) (lib.versions.majorMinor _version))
     ++ (lib.optional (_autoTags.major && lib.flocken.isNotEmpty _version && !isPreRelease _version) (lib.versions.major _version))
   );
+  firstTag = builtins.head _tags;
 
   _annotations =
     lib.filterAttrs
@@ -184,15 +185,14 @@ in
             --password "${registryParams.password}"
           set -x # echo on
 
-          firstTag=${builtins.head _tags}
           ${buildahExe} manifest push --all \
             --format ${format} \
             "$manifest" \
-            "${targetProtocol}${registryName}/${registryParams.repo}:$firstTag"
+            "${targetProtocol}${registryName}/${registryParams.repo}:${firstTag}"
 
           for tag in ${builtins.toString _tags}; do
             ${craneExe} tag \
-              "${registryName}/${registryParams.repo}:$firstTag" \
+              "${registryName}/${registryParams.repo}:${firstTag}" \
               "$tag"
           done
 
