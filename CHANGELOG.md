@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/mirkolenz/flocken/compare/v2.1.2...v2.2.0) (2024-07-09)
+
+
+### Features
+
+* **docker-manifest:** apply additional image tags with crane ([#51](https://github.com/mirkolenz/flocken/issues/51)) ([e5d4bca](https://github.com/mirkolenz/flocken/commit/e5d4bcace2dd5d571f6e7f02c458081980022190))
+
 ## [2.1.2](https://github.com/mirkolenz/flocken/compare/v2.1.1...v2.1.2) (2024-01-01)
 
 
