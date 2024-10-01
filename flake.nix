@@ -29,7 +29,7 @@
       perSystem =
         {
           pkgs,
-          self',
+          config,
           ...
         }:
         {
@@ -39,26 +39,21 @@
               inherit lib;
             };
           };
-          packages = {
-            test = pkgs.buildEnv {
-              name = "test";
-              paths = with self'.packages; [
-                testDockerManifest
-              ];
-            };
-            testDockerManifest = self'.legacyPackages.mkDockerManifest {
+          checks = {
+            docker-manifest = config.legacyPackages.mkDockerManifest {
               github = {
                 enable = true;
                 repo = "mirkolenz/flocken";
                 actor = "mirkolenz";
-                token = "";
+                token = "$GH_TOKEN";
               };
               branch = "main";
               version = "1.0.0";
-              images = with self.packages; [ x86_64-linux.dummyDocker ];
-            };
-            dummyDocker = pkgs.dockerTools.buildImage {
-              name = "dummy";
+              images = [
+                (pkgs.dockerTools.buildImage {
+                  name = "dummy";
+                })
+              ];
             };
           };
         };

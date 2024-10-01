@@ -3,7 +3,7 @@ on:
     branches:
       - main
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -11,11 +11,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v14
       - uses: DeterminateSystems/magic-nix-cache-action@v8
-      - run: nix build .#test --impure
+      - run: nix flake check --show-trace --impure
   release:
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'mirkolenz' && github.event_name == 'push' }}
-    needs: test
+    needs: check
     permissions:
       contents: write
     steps:
