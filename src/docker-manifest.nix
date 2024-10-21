@@ -140,12 +140,10 @@ let
     ]
   );
 in
-assert (lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified");
-assert (
-  lib.assertMsg (
-    !(_github.enable && lib.flocken.isEmpty _github.actor && lib.flocken.isEmpty _github.repo)
-  ) "The GitHub actor and/or repo are empty"
-);
+assert lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified";
+assert lib.assertMsg (
+  !(_github.enable && lib.flocken.isEmpty _github.actor && lib.flocken.isEmpty _github.repo)
+) "The GitHub actor and/or repo are empty";
 writeShellScriptBin "docker-manifest" ''
   set -x # echo on
 
