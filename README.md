@@ -27,7 +27,8 @@ Create and push a Docker manifest to a registry.
 This is particularly useful for multi-arch images.
 The function takes the following attrset as an argument:
 
-- `images` (required): List of Docker images to be added to the manifest. Can for instance be produced using `dockerTools.buildLayeredImage`. _Note:_ This should be a list of identical images for different architectures.
+- `images`: List of Docker images to be added to the manifest. Can for instance be produced using `dockerTools.buildLayeredImage`. _Note:_ This should be a list of identical images for different architectures.
+- `imageStreams`: List of Docker image streams to be added to the manifest. Can for instance be produced using `dockerTools.streamLayeredImage`. _Note:_ This should be a list of identical images for different architectures.
 - `version`: Semantic version of the image (e.g., `v1.0.0` or `1.0.0`).
 - `branch`: Name of the git branch (e.g., `main`). Defaults to the environment variable `GITHUB_REF_NAME` in GitHub actions if `GITHUB_REF_TYPE == "branch"`.
 - `defaultBranch`: Name of the git branch that is used as default for the `latest` tag. Defaults to `main`. If the GitHub option is enabled, this option is set automatically.
@@ -63,7 +64,7 @@ dockerManifest = mkDockerManifest {
     token = "$GH_TOKEN";
   };
   version = builtins.getEnv "VERSION";
-  images = with self.packages; [x86_64-linux.dockerImage aarch64-linux.dockerImage];
+  imageStreams = with self.packages; [x86_64-linux.docker aarch64-linux.docker];
 }
 ```
 
