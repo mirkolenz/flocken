@@ -42,17 +42,9 @@ let
     apiEndpoint = "https://api.github.com";
   } // github;
 
-  githubData =
-    if _github.enable then
-      builtins.fromJSON (
-        builtins.readFile (
-          builtins.fetchurl {
-            url = "${_github.apiEndpoint}/repos/${_github.repo}";
-          }
-        )
-      )
-    else
-      { };
+  githubData = lib.optionalAttrs (_github.enable) lib.importJSON (
+    builtins.fetchurl "${_github.apiEndpoint}/repos/${_github.repo}"
+  );
 
   defaultAnnotations = {
     org.opencontainers.image = {
@@ -124,11 +116,11 @@ let
       lib.versions.major _version
     ))
   );
-  firstTag = builtins.head _tags;
+  firstTag = lib.head _tags;
 
   _annotations = lib.filterAttrs (key: value: lib.flocken.isNotEmpty value) (
-    builtins.foldl' lib.recursiveUpdate (lib.flocken.getLeaves defaultAnnotations) (
-      builtins.map lib.flocken.getLeaves [
+    lib.foldl' lib.recursiveUpdate (lib.flocken.getLeaves defaultAnnotations) (
+      map lib.flocken.getLeaves [
         githubAnnotations
         annotations
       ]
@@ -136,25 +128,23 @@ let
   );
 
   _registries = lib.filterAttrs (key: value: lib.flocken.isNotEmpty value && value.enable == true) (
-    builtins.foldl' lib.recursiveUpdate defaultRegistries [
+    lib.foldl' lib.recursiveUpdate defaultRegistries [
       githubRegistries
       registries
     ]
   );
 
-  annotateManifest = lib.optionalString (builtins.length (builtins.attrNames _annotations) > 0) ''
+  annotateManifest = lib.optionalString (lib.length (lib.attrNames _annotations) > 0) ''
     manifestSplit=($manifestOutput)
     digest=''${manifestSplit[1]}
     ${buildahExe} manifest annotate \
-      ${
-        builtins.toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)
-      } \
+      ${toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)} \
       "$manifest" "$digest"
   '';
 in
-assert lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified";
+assert lib.assertMsg (lib.length _tags > 0) "At least one tag must be specified";
 assert lib.assertMsg (
-  builtins.length images > 0 || builtins.length imageStreams > 0
+  lib.length images > 0 || lib.length imageStreams > 0
 ) "At least one image or imageStream must be specified";
 assert lib.assertMsg (
   !(_github.enable && lib.flocken.isEmpty _github.actor && lib.flocken.isEmpty _github.repo)
@@ -170,12 +160,12 @@ writeShellScriptBin "docker-manifest" ''
 
   manifest=$(${buildahExe} manifest create "${manifestName}")
 
-  for image in ${builtins.toString images}; do
+  for image in ${toString images}; do
     manifestOutput=$(${buildahExe} manifest add "$manifest" "${sourceProtocol}$image")
     ${annotateManifest}
   done
 
-  for image in ${builtins.toString imageStreams}; do
+  for image in ${toString imageStreams}; do
     manifestOutput=$("$image" | ${lib.getExe gzip} --fast | ${buildahExe} manifest add "$manifest" "${sourceProtocol}/dev/stdin")
     ${annotateManifest}
   done
@@ -202,8 +192,8 @@ writeShellScriptBin "docker-manifest" ''
         "${targetProtocol}${registryName}/${registryParams.repo}:${firstTag}"
 
       # `crane tag` is idempotent so it is not necessary to use
-      # `builtins.tail` to remove the first tag from `_tags`
-      for tag in ${builtins.toString _tags}; do
+      # `lib.tail` to remove the first tag from `_tags`
+      for tag in ${toString _tags}; do
         ${craneExe} tag \
           "${registryName}/${registryParams.repo}:${firstTag}" \
           "$tag"
