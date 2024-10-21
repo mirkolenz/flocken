@@ -139,6 +139,16 @@ let
       registries
     ]
   );
+
+  annotateManifest = lib.optionalString (builtins.length (builtins.attrNames _annotations) > 0) ''
+    manifestSplit=($manifestOutput)
+    digest=''${manifestSplit[1]}
+    ${buildahExe} manifest annotate \
+      ${
+        builtins.toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)
+      } \
+      "$manifest" "$digest"
+  '';
 in
 assert lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified";
 assert lib.assertMsg (
@@ -157,20 +167,7 @@ writeShellScriptBin "docker-manifest" ''
 
   for image in ${builtins.toString images}; do
     manifestOutput=$(${buildahExe} manifest add "$manifest" "${sourceProtocol}$image")
-    ${
-      if builtins.length (builtins.attrNames _annotations) > 0 then
-        ''
-          manifestSplit=($manifestOutput)
-          digest=''${manifestSplit[1]}
-          ${buildahExe} manifest annotate \
-            ${
-              builtins.toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)
-            } \
-            "$manifest" "$digest"
-        ''
-      else
-        ""
-    }
+    ${annotateManifest}
   done
 
   ${buildahExe} manifest inspect "$manifest"
@@ -194,7 +191,7 @@ writeShellScriptBin "docker-manifest" ''
         "$manifest" \
         "${targetProtocol}${registryName}/${registryParams.repo}:${firstTag}"
 
-      # `crane tag` is idempotent so it is not necessary to use 
+      # `crane tag` is idempotent so it is not necessary to use
       # `builtins.tail` to remove the first tag from `_tags`
       for tag in ${builtins.toString _tags}; do
         ${craneExe} tag \
