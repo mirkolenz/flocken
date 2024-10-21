@@ -5,9 +5,11 @@
   coreutils,
   crane,
   git,
+  gzip,
 }:
 {
-  images,
+  images ? [ ],
+  imageStreams ? [ ],
   version ? null,
   branch ? null,
   defaultBranch ? null,
@@ -152,6 +154,9 @@ let
 in
 assert lib.assertMsg (builtins.length _tags > 0) "At least one tag must be specified";
 assert lib.assertMsg (
+  builtins.length images > 0 || builtins.length imageStreams > 0
+) "At least one image or imageStream must be specified";
+assert lib.assertMsg (
   !(_github.enable && lib.flocken.isEmpty _github.actor && lib.flocken.isEmpty _github.repo)
 ) "The GitHub actor and/or repo are empty";
 writeShellScriptBin "docker-manifest" ''
@@ -167,6 +172,11 @@ writeShellScriptBin "docker-manifest" ''
 
   for image in ${builtins.toString images}; do
     manifestOutput=$(${buildahExe} manifest add "$manifest" "${sourceProtocol}$image")
+    ${annotateManifest}
+  done
+
+  for image in ${builtins.toString imageStreams}; do
+    manifestOutput=$("$image" | ${lib.getExe gzip} --fast | ${buildahExe} manifest add "$manifest" "${sourceProtocol}/dev/stdin")
     ${annotateManifest}
   done
 
