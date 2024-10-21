@@ -50,7 +50,12 @@
               branch = "main";
               version = "1.0.0";
               images = [
-                (pkgs.dockerTools.buildImage {
+                (pkgs.dockerTools.buildLayeredImage {
+                  name = "dummy";
+                })
+              ];
+              imageStreams = [
+                (pkgs.dockerTools.streamLayeredImage {
                   name = "dummy";
                 })
               ];
