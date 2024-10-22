@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/mirkolenz/flocken/compare/v2.2.0...v2.3.0) (2024-10-22)
+
+
+### Features
+
+* **docker:** add support for image streams ([35902c3](https://github.com/mirkolenz/flocken/commit/35902c3e49a94194ff8aa9fa66e954928f7d2687))
+
 ## [2.2.0](https://github.com/mirkolenz/flocken/compare/v2.1.2...v2.2.0) (2024-07-09)
 
 
