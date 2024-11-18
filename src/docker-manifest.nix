@@ -18,8 +18,6 @@
   registries ? { },
   annotations ? { },
   github ? { },
-  sourceProtocol ? "docker-archive:",
-  targetProtocol ? "docker://",
   format ? "oci",
   manifestName ? "flocken",
 }:
@@ -151,6 +149,7 @@ assert lib.assertMsg (
 ) "The GitHub actor and/or repo are empty";
 writeShellScriptBin "docker-manifest" ''
   set -x # echo on
+  TMPDIR="$(mktemp -d)"
 
   datetimeNow="$(${lib.getExe' coreutils "date"} --iso-8601=seconds)"
 
@@ -160,15 +159,17 @@ writeShellScriptBin "docker-manifest" ''
 
   manifest=$(${buildahExe} manifest create "${manifestName}")
 
-  for image in ${toString images}; do
-    manifestOutput=$(${buildahExe} manifest add "$manifest" "${sourceProtocol}$image")
+  ${lib.concatMapStringsSep "\n" (imageFile: ''
+    manifestOutput=$(${buildahExe} manifest add "$manifest" "docker-archive:${imageFile}")
     ${annotateManifest}
-  done
+  '') images}
 
-  for image in ${toString imageStreams}; do
-    manifestOutput=$("$image" | ${lib.getExe gzip} --fast | ${buildahExe} manifest add "$manifest" "${sourceProtocol}/dev/stdin")
+  ${lib.concatImapStringsSep "\n" (idx: imageStream: ''
+    imageFile="$TMPDIR/image-stream-${toString idx}.tar.gz"
+    ${imageStream} | ${lib.getExe gzip} --fast > "$imageFile"
+    manifestOutput=$(${buildahExe} manifest add "$manifest" "docker-archive:$imageFile")
     ${annotateManifest}
-  done
+  '') imageStreams}
 
   ${buildahExe} manifest inspect "$manifest"
 
@@ -189,18 +190,21 @@ writeShellScriptBin "docker-manifest" ''
       ${buildahExe} manifest push --all \
         --format ${format} \
         "$manifest" \
-        "${targetProtocol}${registryName}/${registryParams.repo}:${firstTag}"
+        "docker://${registryName}/${registryParams.repo}:${firstTag}" \
+        || exit 1
 
       # `crane tag` is idempotent so it is not necessary to use
       # `lib.tail` to remove the first tag from `_tags`
-      for tag in ${toString _tags}; do
+      ${lib.concatMapStringsSep "\n" (tag: ''
         ${craneExe} tag \
           "${registryName}/${registryParams.repo}:${firstTag}" \
-          "$tag"
-      done
+          ${tag}
+      '') _tags}
 
       ${buildahExe} logout "${registryName}"
       ${craneExe} auth logout "${registryName}"
     '') _registries
   )}
+
+  rm -rf "$TMPDIR"
 ''
