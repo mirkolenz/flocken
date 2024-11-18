@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.1](https://github.com/mirkolenz/flocken/compare/v2.3.0...v2.3.1) (2024-11-18)
+
+### Bug Fixes
+
+* **docker-manifest:** persist image streams to temporary directory, exit if buildah fails to push ([72388a0](https://github.com/mirkolenz/flocken/commit/72388a092c9fe712edaa5f4fb087d4603302cbad))
+
 ## [2.3.0](https://github.com/mirkolenz/flocken/compare/v2.2.0...v2.3.0) (2024-10-22)
 
 
