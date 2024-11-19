@@ -202,8 +202,6 @@ writeShellScriptBin "docker-manifest" ''
         "docker://${registryName}/${registryParams.repo}:${firstTag}" \
         || exit 1
 
-      # `crane tag` is idempotent so it is not necessary to use
-      # `lib.tail` to remove the first tag from `_tags`
       ${lib.concatMapStringsSep "\n" (tag: ''
         ${craneExe} tag \
           "${registryName}/${registryParams.repo}:${firstTag}" \
