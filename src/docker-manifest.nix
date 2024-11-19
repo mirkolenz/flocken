@@ -22,6 +22,7 @@
   manifestName ? "flocken",
 }:
 let
+  mkCliFlags = lib.cli.toGNUCommandLineShell { };
   isPreRelease = x: lib.hasInfix "-" x;
   optionalAttrPath = path: attrset: lib.flocken.attrByDottedPath path null attrset;
 
@@ -123,7 +124,7 @@ let
     )
   );
 
-  manifestCreateFlags = {
+  annotationFlags = {
     annotation = lib.mapAttrsToList (
       key: value:
       ''${key}=${
@@ -149,8 +150,6 @@ let
       registries
     ]
   );
-
-  mkCliFlags = lib.cli.toGNUCommandLineShell { };
 in
 assert lib.assertMsg (lib.length _tags > 0) "At least one tag must be specified";
 assert lib.assertMsg (
@@ -180,20 +179,23 @@ writeShellScriptBin "docker-manifest" ''
     ${buildahExe} manifest rm "${manifestName}"
   fi
 
-  ${buildahExe} manifest create \
+  ${buildahExe} manifest create "${manifestName}" || exit 1
+
+  ${buildahExe} manifest annotate \
+    --index \
     --annotation "org.opencontainers.image.created=$(${lib.getExe' coreutils "date"} --iso-8601=seconds)" \
     --annotation "org.opencontainers.image.revision=$(${lib.getExe git} rev-parse HEAD)" \
-    ${mkCliFlags manifestCreateFlags} \
+    ${mkCliFlags annotationFlags} \
     "${manifestName}" \
     || exit 1
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
-    ${buildahExe} manifest add "${manifestName}" "docker-archive:${imageFile}"
+    ${buildahExe} manifest add "${manifestName}" "docker-archive:${imageFile}" || exit 1
   '') images}
 
   ${lib.concatImapStringsSep "\n" (idx: imageStream: ''
     ${imageStream} | ${lib.getExe gzip} --fast > "$TMPDIR/image-stream-${toString idx}.tar.gz"
-    ${buildahExe} manifest add "${manifestName}" "docker-archive:$TMPDIR/image-stream-${toString idx}.tar.gz"
+    ${buildahExe} manifest add "${manifestName}" "docker-archive:$TMPDIR/image-stream-${toString idx}.tar.gz" || exit 1
   '') imageStreams}
 
   ${buildahExe} manifest inspect "${manifestName}"
