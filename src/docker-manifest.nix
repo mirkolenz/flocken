@@ -160,7 +160,11 @@ writeShellScriptBin "docker-manifest" ''
   fi
 
   ${buildahExe} manifest create \
-    ${toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)} \
+    ${
+      toString (
+        lib.mapAttrsToList (key: value: ''--annotation "${key}=${lib.escape [ "\"" ] value}"'') _annotations
+      )
+    } \
     "${manifestName}"
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
