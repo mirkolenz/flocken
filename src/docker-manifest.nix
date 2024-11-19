@@ -47,7 +47,7 @@ let
   defaultAnnotations = {
     org.opencontainers.image = {
       version = _version;
-      created = ''"$datetimeNow"'';
+      created = "$(${lib.getExe' coreutils "date"} --iso-8601=seconds)";
       revision = "$(${lib.getExe git} rev-parse HEAD)";
     };
   };
@@ -154,8 +154,6 @@ writeShellScriptBin "docker-manifest" ''
 
   set -x # echo on
   TMPDIR="$(mktemp -d)"
-
-  datetimeNow="$(${lib.getExe' coreutils "date"} --iso-8601=seconds)"
 
   if ${buildahExe} manifest exists "${manifestName}"; then
     ${buildahExe} manifest rm "${manifestName}"
