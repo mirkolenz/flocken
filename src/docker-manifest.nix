@@ -126,7 +126,7 @@ let
   );
 
   annotationFlags = lib.mapAttrsToList (
-    key: value: ''--annotation "${key}=${lib.escape [ "\"" ] value}"''
+    key: value: ''--annotation ${key}="${lib.escape [ "\"" ] value}"''
   ) _annotations;
 
   _registries = lib.filterAttrs (key: value: lib.flocken.isNotEmpty value && value.enable == true) (
