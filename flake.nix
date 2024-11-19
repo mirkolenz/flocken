@@ -51,12 +51,12 @@
               version = "1.0.0";
               images = [
                 (pkgs.dockerTools.buildLayeredImage {
-                  name = "dummy";
+                  name = "dummy-image";
                 })
               ];
               imageStreams = [
                 (pkgs.dockerTools.streamLayeredImage {
-                  name = "dummy";
+                  name = "dummy-image-stream";
                 })
               ];
             };
