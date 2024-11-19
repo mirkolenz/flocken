@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.6](https://github.com/mirkolenz/flocken/compare/v2.3.5...v2.3.6) (2024-11-19)
+
+### Bug Fixes
+
+* **manifest:** replace some strings in annotations ([ae35d50](https://github.com/mirkolenz/flocken/commit/ae35d50ce87e17f221ccbae4762f3b42cb6bc359))
+
 ## [2.3.5](https://github.com/mirkolenz/flocken/compare/v2.3.4...v2.3.5) (2024-11-19)
 
 ### Bug Fixes
