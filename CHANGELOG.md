@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.3](https://github.com/mirkolenz/flocken/compare/v2.3.2...v2.3.3) (2024-11-19)
+
+### Bug Fixes
+
+* **docker-manifest:** compute datetime in default annotation ([8c6b1af](https://github.com/mirkolenz/flocken/commit/8c6b1af319bbd08a7457ac90152002306cb92812))
+* **manifest:** properly escape annotation values ([860c3fa](https://github.com/mirkolenz/flocken/commit/860c3faa582ca0974d1588152b85f7f327ae2eb3))
+
 ## [2.3.2](https://github.com/mirkolenz/flocken/compare/v2.3.1...v2.3.2) (2024-11-19)
 
 ### Bug Fixes
