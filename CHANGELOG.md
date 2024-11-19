@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.4](https://github.com/mirkolenz/flocken/compare/v2.3.3...v2.3.4) (2024-11-19)
+
+### Bug Fixes
+
+* **manifest:** only escape annotation values and not keys ([3f21d54](https://github.com/mirkolenz/flocken/commit/3f21d5462077a526af20fbcc25982b6888e2ec4c))
+
 ## [2.3.3](https://github.com/mirkolenz/flocken/compare/v2.3.2...v2.3.3) (2024-11-19)
 
 ### Bug Fixes
