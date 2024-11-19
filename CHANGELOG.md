@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/mirkolenz/flocken/compare/v2.3.1...v2.3.2) (2024-11-19)
+
+### Bug Fixes
+
+* **docker-manifest:** add cleanup trap to remove tmpdir and log out of registries ([10652c7](https://github.com/mirkolenz/flocken/commit/10652c74e9b0ac46af5666dfc4519cb1b9f06a91))
+* **docker-manifest:** properly annotate the manifest index ([4c6d41c](https://github.com/mirkolenz/flocken/commit/4c6d41c6bf2a40b10c2dea28f841b925bde1ea3f))
+
 ## [2.3.1](https://github.com/mirkolenz/flocken/compare/v2.3.0...v2.3.1) (2024-11-18)
 
 ### Bug Fixes
