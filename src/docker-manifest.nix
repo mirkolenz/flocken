@@ -131,14 +131,6 @@ let
       registries
     ]
   );
-
-  annotateManifest = lib.optionalString (lib.length (lib.attrNames _annotations) > 0) ''
-    manifestSplit=($manifestOutput)
-    digest=''${manifestSplit[1]}
-    ${buildahExe} manifest annotate \
-      ${toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)} \
-      "$manifest" "$digest"
-  '';
 in
 assert lib.assertMsg (lib.length _tags > 0) "At least one tag must be specified";
 assert lib.assertMsg (
@@ -169,21 +161,21 @@ writeShellScriptBin "docker-manifest" ''
     ${buildahExe} manifest rm "${manifestName}"
   fi
 
-  manifest=$(${buildahExe} manifest create "${manifestName}")
+  ${buildahExe} manifest create \
+    ${toString (lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}"'') _annotations)} \
+    "${manifestName}"
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
-    manifestOutput=$(${buildahExe} manifest add "$manifest" "docker-archive:${imageFile}")
-    ${annotateManifest}
+    ${buildahExe} manifest add "${manifestName}" "docker-archive:${imageFile}"
   '') images}
 
   ${lib.concatImapStringsSep "\n" (idx: imageStream: ''
     imageFile="$TMPDIR/image-stream-${toString idx}.tar.gz"
     ${imageStream} | ${lib.getExe gzip} --fast > "$imageFile"
-    manifestOutput=$(${buildahExe} manifest add "$manifest" "docker-archive:$imageFile")
-    ${annotateManifest}
+    ${buildahExe} manifest add "${manifestName}" "docker-archive:$imageFile"
   '') imageStreams}
 
-  ${buildahExe} manifest inspect "$manifest"
+  ${buildahExe} manifest inspect "${manifestName}"
 
   ${lib.concatLines (
     lib.mapAttrsToList (registryName: registryParams: ''
@@ -201,7 +193,7 @@ writeShellScriptBin "docker-manifest" ''
 
       ${buildahExe} manifest push --all \
         --format ${format} \
-        "$manifest" \
+        "${manifestName}" \
         "docker://${registryName}/${registryParams.repo}:${firstTag}" \
         || exit 1
 
