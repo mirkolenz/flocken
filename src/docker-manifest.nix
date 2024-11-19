@@ -125,6 +125,10 @@ let
     )
   );
 
+  annotationFlags = lib.mapAttrsToList (
+    key: value: ''--annotation "${key}=${lib.escape [ "\"" ] value}"''
+  ) _annotations;
+
   _registries = lib.filterAttrs (key: value: lib.flocken.isNotEmpty value && value.enable == true) (
     lib.foldl' lib.recursiveUpdate defaultRegistries [
       githubRegistries
@@ -160,11 +164,7 @@ writeShellScriptBin "docker-manifest" ''
   fi
 
   ${buildahExe} manifest create \
-    ${
-      toString (
-        lib.mapAttrsToList (key: value: ''--annotation "${key}=${lib.escape [ "\"" ] value}"'') _annotations
-      )
-    } \
+    ${toString annotationFlags} \
     "${manifestName}"
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
