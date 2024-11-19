@@ -125,7 +125,21 @@ let
 
   manifestCreateFlags = {
     annotation = lib.mapAttrsToList (
-      key: value: ''${key}=${lib.replaceStrings [ "\"" ] [ "" ] value}''
+      key: value:
+      ''${key}=${
+        lib.replaceStrings
+          [
+            "\""
+            "'"
+            ","
+          ]
+          [
+            ""
+            ""
+            ""
+          ]
+          value
+      }''
     ) _annotations;
   };
 
@@ -148,6 +162,7 @@ assert lib.assertMsg (
 writeShellScriptBin "docker-manifest" ''
   function cleanup {
     rm -rf "$TMPDIR"
+    ${buildahExe} manifest rm "${manifestName}" || true
 
     ${
       lib.concatMapStringsSep "\n" (registryName: ''
