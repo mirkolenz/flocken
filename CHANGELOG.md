@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.3.7](https://github.com/mirkolenz/flocken/compare/v2.3.6...v2.3.7) (2024-11-19)
+
+### Bug Fixes
+
+* **manifest:** separate annotation from creation, enforce exit on error ([140acea](https://github.com/mirkolenz/flocken/commit/140acea35614d339a312399786e9957ed83ab9fb))
+
 ## [2.3.6](https://github.com/mirkolenz/flocken/compare/v2.3.5...v2.3.6) (2024-11-19)
 
 ### Bug Fixes
