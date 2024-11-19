@@ -47,8 +47,6 @@ let
   defaultAnnotations = {
     org.opencontainers.image = {
       version = _version;
-      created = "$(${lib.getExe' coreutils "date"} --iso-8601=seconds)";
-      revision = "$(${lib.getExe git} rev-parse HEAD)";
     };
   };
 
@@ -125,9 +123,11 @@ let
     )
   );
 
-  annotationFlags = lib.mapAttrsToList (
-    key: value: ''--annotation ${key}="${lib.escape [ "\"" ] value}"''
-  ) _annotations;
+  manifestCreateFlags = {
+    annotation = lib.mapAttrsToList (
+      key: value: ''${key}=${lib.replaceStrings [ "\"" ] [ "" ] value}''
+    ) _annotations;
+  };
 
   _registries = lib.filterAttrs (key: value: lib.flocken.isNotEmpty value && value.enable == true) (
     lib.foldl' lib.recursiveUpdate defaultRegistries [
@@ -135,6 +135,8 @@ let
       registries
     ]
   );
+
+  mkCliFlags = lib.cli.toGNUCommandLineShell { };
 in
 assert lib.assertMsg (lib.length _tags > 0) "At least one tag must be specified";
 assert lib.assertMsg (
@@ -164,8 +166,11 @@ writeShellScriptBin "docker-manifest" ''
   fi
 
   ${buildahExe} manifest create \
-    ${toString annotationFlags} \
-    "${manifestName}"
+    --annotation "org.opencontainers.image.created=$(${lib.getExe' coreutils "date"} --iso-8601=seconds)" \
+    --annotation "org.opencontainers.image.revision=$(${lib.getExe git} rev-parse HEAD)" \
+    ${mkCliFlags manifestCreateFlags} \
+    "${manifestName}" \
+    || exit 1
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
     ${buildahExe} manifest add "${manifestName}" "docker-archive:${imageFile}"
