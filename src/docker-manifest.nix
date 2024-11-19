@@ -170,9 +170,8 @@ writeShellScriptBin "docker-manifest" ''
   '') images}
 
   ${lib.concatImapStringsSep "\n" (idx: imageStream: ''
-    imageFile="$TMPDIR/image-stream-${toString idx}.tar.gz"
-    ${imageStream} | ${lib.getExe gzip} --fast > "$imageFile"
-    ${buildahExe} manifest add "${manifestName}" "docker-archive:$imageFile"
+    ${imageStream} | ${lib.getExe gzip} --fast > "$TMPDIR/image-stream-${toString idx}.tar.gz"
+    ${buildahExe} manifest add "${manifestName}" "docker-archive:$TMPDIR/image-stream-${toString idx}.tar.gz"
   '') imageStreams}
 
   ${buildahExe} manifest inspect "${manifestName}"
