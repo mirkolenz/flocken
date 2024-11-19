@@ -179,18 +179,22 @@ writeShellScriptBin "docker-manifest" ''
   ${lib.concatLines (
     lib.mapAttrsToList (registryName: registryParams: ''
       set +x # echo off
+
       echo "buildah login ${registryName}"
       ${buildahExe} login \
         --username "${registryParams.username}" \
         --password "${registryParams.password}" \
         "${registryName}"
+
       echo "crane login ${registryName}"
       ${craneExe} auth login "${registryName}" \
         --username "${registryParams.username}" \
         --password "${registryParams.password}"
+
       set -x # echo on
 
-      ${buildahExe} manifest push --all \
+      ${buildahExe} manifest push \
+        --all \
         --format ${format} \
         "${manifestName}" \
         "docker://${registryName}/${registryParams.repo}:${firstTag}" \
@@ -201,7 +205,7 @@ writeShellScriptBin "docker-manifest" ''
       ${lib.concatMapStringsSep "\n" (tag: ''
         ${craneExe} tag \
           "${registryName}/${registryParams.repo}:${firstTag}" \
-          ${tag}
+          "${tag}"
       '') _tags}
     '') _registries
   )}
