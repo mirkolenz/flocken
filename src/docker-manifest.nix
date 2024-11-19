@@ -148,6 +148,18 @@ assert lib.assertMsg (
   !(_github.enable && lib.flocken.isEmpty _github.actor && lib.flocken.isEmpty _github.repo)
 ) "The GitHub actor and/or repo are empty";
 writeShellScriptBin "docker-manifest" ''
+  function cleanup {
+    rm -rf "$TMPDIR"
+
+    ${
+      lib.concatMapStringsSep "\n" (registryName: ''
+        ${buildahExe} logout "${registryName}" || true
+        ${craneExe} auth logout "${registryName}" || true
+      '') (lib.attrNames _registries)
+    }
+  }
+  trap cleanup EXIT
+
   set -x # echo on
   TMPDIR="$(mktemp -d)"
 
@@ -200,11 +212,6 @@ writeShellScriptBin "docker-manifest" ''
           "${registryName}/${registryParams.repo}:${firstTag}" \
           ${tag}
       '') _tags}
-
-      ${buildahExe} logout "${registryName}"
-      ${craneExe} auth logout "${registryName}"
     '') _registries
   )}
-
-  rm -rf "$TMPDIR"
 ''
