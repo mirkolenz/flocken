@@ -1,7 +1,7 @@
 {
   lib,
   writeShellScriptBin,
-  buildah,
+  podman,
   coreutils,
   crane,
   git,
@@ -26,7 +26,7 @@ let
   isPreRelease = x: lib.hasInfix "-" x;
   optionalAttrPath = path: attrset: lib.flocken.attrByDottedPath path null attrset;
 
-  buildahExe = lib.getExe' buildah "buildah";
+  podmanExe = lib.getExe' podman "podman";
   craneExe = lib.getExe' crane "crane";
 
   _github = {
@@ -161,28 +161,23 @@ assert lib.assertMsg (
 writeShellScriptBin "docker-manifest" ''
   function cleanup {
     rm -rf "$TMPDIR"
-    ${buildahExe} manifest rm "${manifestName}" || true
+    ${podmanExe} manifest rm "${manifestName}" || true
 
-    ${
-      lib.concatMapStringsSep "\n" (registryName: ''
-        ${buildahExe} logout "${registryName}" || true
-        ${craneExe} auth logout "${registryName}" || true
-      '') (lib.attrNames _registries)
-    }
+    ${lib.concatMapStringsSep "\n" (registryName: ''
+      ${podmanExe} logout "${registryName}" || true
+      ${craneExe} auth logout "${registryName}" || true
+    '') (lib.attrNames _registries)}
   }
   trap cleanup EXIT
 
   set -x # echo on
   TMPDIR="$(mktemp -d)"
 
-  if ${buildahExe} manifest exists "${manifestName}"; then
-    ${buildahExe} manifest rm "${manifestName}"
+  if ${podmanExe} manifest exists "${manifestName}"; then
+    ${podmanExe} manifest rm "${manifestName}"
   fi
 
-  ${buildahExe} manifest create "${manifestName}" || exit 1
-
-  ${buildahExe} manifest annotate \
-    --index \
+  ${podmanExe} manifest create \
     --annotation "org.opencontainers.image.created=$(${lib.getExe' coreutils "date"} --iso-8601=seconds)" \
     --annotation "org.opencontainers.image.revision=$(${lib.getExe git} rev-parse HEAD)" \
     ${mkCliFlags annotationFlags} \
@@ -190,22 +185,22 @@ writeShellScriptBin "docker-manifest" ''
     || exit 1
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
-    ${buildahExe} manifest add "${manifestName}" "docker-archive:${imageFile}" || exit 1
+    ${podmanExe} manifest add "${manifestName}" "docker-archive:${imageFile}" || exit 1
   '') images}
 
   ${lib.concatImapStringsSep "\n" (idx: imageStream: ''
     ${imageStream} | ${lib.getExe gzip} --fast > "$TMPDIR/image-stream-${toString idx}.tar.gz"
-    ${buildahExe} manifest add "${manifestName}" "docker-archive:$TMPDIR/image-stream-${toString idx}.tar.gz" || exit 1
+    ${podmanExe} manifest add "${manifestName}" "docker-archive:$TMPDIR/image-stream-${toString idx}.tar.gz" || exit 1
   '') imageStreams}
 
-  ${buildahExe} manifest inspect "${manifestName}"
+  ${podmanExe} manifest inspect "${manifestName}"
 
   ${lib.concatLines (
     lib.mapAttrsToList (registryName: registryParams: ''
       set +x # echo off
 
-      echo "buildah login ${registryName}"
-      ${buildahExe} login \
+      echo "podman login ${registryName}"
+      ${podmanExe} login \
         --username "${registryParams.username}" \
         --password "${registryParams.password}" \
         "${registryName}"
@@ -217,7 +212,7 @@ writeShellScriptBin "docker-manifest" ''
 
       set -x # echo on
 
-      ${buildahExe} manifest push \
+      ${podmanExe} manifest push \
         --all \
         --format ${format} \
         "${manifestName}" \
