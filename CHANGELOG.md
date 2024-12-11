@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.4.0](https://github.com/mirkolenz/flocken/compare/v2.3.7...v2.4.0) (2024-12-11)
+
+### Features
+
+* **docker-manifest:** switch from buildah to podman ([5b3bfad](https://github.com/mirkolenz/flocken/commit/5b3bfad9940bf7609a5b5965c14ee5d9b794b2d4))
+
 ## [2.3.7](https://github.com/mirkolenz/flocken/compare/v2.3.6...v2.3.7) (2024-11-19)
 
 ### Bug Fixes
