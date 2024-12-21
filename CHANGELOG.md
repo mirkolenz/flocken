@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.4.1](https://github.com/mirkolenz/flocken/compare/v2.4.0...v2.4.1) (2024-12-21)
+
+### Bug Fixes
+
+* **manifest:** add parentheses around github api call ([ca89390](https://github.com/mirkolenz/flocken/commit/ca8939016dfb65aa0786b2c77bacaafce0045b2a))
+
 ## [2.4.0](https://github.com/mirkolenz/flocken/compare/v2.3.7...v2.4.0) (2024-12-11)
 
 ### Features
