@@ -41,8 +41,8 @@ let
     apiEndpoint = "https://api.github.com";
   } // github;
 
-  githubData = lib.optionalAttrs (_github.enable) lib.importJSON (
-    builtins.fetchurl "${_github.apiEndpoint}/repos/${_github.repo}"
+  githubData = lib.optionalAttrs (_github.enable) (
+    lib.importJSON (builtins.fetchurl "${_github.apiEndpoint}/repos/${_github.repo}")
   );
 
   defaultAnnotations = {
