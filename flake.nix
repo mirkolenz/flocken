@@ -18,6 +18,7 @@
     in
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import systems;
+      imports = [ ./docs.nix ];
       flake = {
         lib = import ./lib nixpkgs.lib;
         overlays = {
@@ -35,7 +36,7 @@
         {
           formatter = pkgs.nixfmt-rfc-style;
           legacyPackages = {
-            mkDockerManifest = pkgs.callPackage ./src/docker-manifest.nix {
+            mkDockerManifest = pkgs.callPackage ./docker-manifest {
               inherit lib;
             };
           };
@@ -49,7 +50,7 @@
               };
               branch = "main";
               version = "1.0.0";
-              images = [
+              imageFiles = [
                 (pkgs.dockerTools.buildLayeredImage {
                   name = "dummy-image";
                 })
