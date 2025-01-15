@@ -76,7 +76,7 @@ let
     else
       "main";
 
-  _branch = if lib.flocken.isNotEmpty _github.branch then _github.branch else branch;
+  _branch = if lib.flocken.isNotEmpty branch then branch else _github.branch;
 
   defaultRegistries = { };
 
