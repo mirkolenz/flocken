@@ -19,14 +19,6 @@ let
 
   podmanExe = lib.getExe' podman "podman";
   craneExe = lib.getExe' crane "crane";
-
-  illegalAnnotationChars = [
-    "\""
-    "'"
-    ","
-  ];
-  replacementAnnotationChars = map (x: "") illegalAnnotationChars;
-  escapeAnnotation = lib.replaceStrings illegalAnnotationChars replacementAnnotationChars;
 in
 
 assert lib.assertMsg (lib.length cfg.uniqueTags > 0) "At least one `tag` must be set";
@@ -63,9 +55,7 @@ writeShellScriptBin "docker-manifest" ''
     --annotation "org.opencontainers.image.revision=$(${lib.getExe git} rev-parse HEAD)" \
     ${
       lib.concatLines (
-        lib.mapAttrsToList (
-          key: value: ''--annotation "${key}=${escapeAnnotation value}" \''
-        ) cfg.annotationLeaves
+        lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}" \'') cfg.annotationLeaves
       )
     } "${cfg.manifestName}" \
     || exit 1

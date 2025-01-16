@@ -12,6 +12,15 @@ let
   githubData = lib.optionalAttrs (config.github.enable) (
     lib.importJSON (builtins.fetchurl "${config.github.apiEndpoint}/repos/${config.github.repo}")
   );
+  illegalAnnotationChars = [
+    "\""
+    "'"
+    ","
+  ];
+  replacementAnnotationChars = map (x: "") illegalAnnotationChars;
+  escapeAnnotations = lib.mapAttrs (
+    name: value: lib.replaceStrings illegalAnnotationChars replacementAnnotationChars value
+  );
 in
 {
   imports = [
@@ -50,18 +59,17 @@ in
     branch = mkOption {
       type = types.nullOr types.str;
       default = null;
+      defaultText = "github.branch || null";
       description = ''
         Name of the git branch (e.g., `main`).
-        Defaults to the environment variable `GITHUB_REF_NAME` in GitHub actions if `GITHUB_REF_TYPE == "branch"`.
       '';
     };
     defaultBranch = mkOption {
       type = types.str;
-      default = "main";
+      default = "github.defaultBranch || 'main'";
+      defaultText = "if `github.enable` then `$GITHUB_DEFAULT_BRANCH` else `main`";
       description = ''
         Name of the git branch that is used as default for the `latest` tag.
-        Defaults to `main`.
-        If the GitHub option is enabled, this option is set automatically.
       '';
     };
     tags = mkOption {
@@ -148,6 +156,7 @@ in
           token = mkOption {
             type = types.str;
             default = "$GITHUB_TOKEN";
+            defaultText = "$GITHUB_TOKEN";
             description = ''
               GitHub access token.
               Used as default value for `registries."ghcr.io".password`.
@@ -156,19 +165,19 @@ in
           actor = mkOption {
             type = types.nullOr types.str;
             default = lib.maybeEnv "GITHUB_ACTOR" null;
+            defaultText = "$GITHUB_ACTOR || null";
             description = ''
               GitHub actor.
               Used as default value for `registries."ghcr.io".username`.
-              Defaults to environment variable `GITHUB_ACTOR` in GitHub actions.
             '';
           };
           repo = mkOption {
             type = types.nullOr types.str;
             default = lib.maybeEnv "GITHUB_REPOSITORY" null;
+            defaultText = "$GITHUB_REPOSITORY || null";
             description = ''
               Full name of the GitHub repository (e.g., `mirkolenz/flocken`).
               Used as default value for `registries."ghcr.io".repo`.
-              Defaults to environment variable `GITHUB_REPOSITORY` in GitHub actions.
             '';
           };
           branch = mkOption {
@@ -178,18 +187,13 @@ in
                 lib.maybeEnv "GITHUB_REF_NAME" null
               else
                 null;
-            description = ''
-              Name of the git branch.
-              Defaults to the environment variable `GITHUB_REF_NAME` in GitHub actions if `GITHUB_REF_TYPE == "branch"`.
-            '';
+            defaultText = "$GITHUB_REF_NAME || null";
+            description = "Name of the git branch.";
           };
           registry = mkOption {
             type = types.str;
             default = "ghcr.io";
-            description = ''
-              Name of the GitHub registry.
-              Defaults to `ghcr.io`.
-            '';
+            description = "Name of the GitHub registry";
           };
           enableRegistry = mkDisableOption "the GitHub container registry";
           apiEndpoint = mkOption {
@@ -227,8 +231,10 @@ in
       annotations.org.opencontainers.image = {
         version = config.parsedVersion;
       };
-      annotationLeaves = lib.filterAttrs (name: value: lib.flocken.isNotEmpty value) (
-        lib.flocken.getLeaves config.annotations
+      annotationLeaves = lib.mapAttrs escapeAnnotations (
+        lib.filterAttrs (name: value: lib.flocken.isNotEmpty value) (
+          lib.flocken.getLeaves config.annotations
+        )
       );
       tags = lib.concatLists [
         (lib.optional config.autoTags.branch config.branch)
