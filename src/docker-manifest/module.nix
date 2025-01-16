@@ -51,7 +51,8 @@ in
     };
     version = mkOption {
       type = types.nullOr types.str;
-      default = null;
+      default = lib.maybeEnv "VERSION" null;
+      defaultText = "$VERSION || null";
       description = "Semantic version of the image (e.g., `v1.0.0` or `1.0.0`).";
     };
     parsedVersion = mkOption {
