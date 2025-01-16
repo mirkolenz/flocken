@@ -4,7 +4,11 @@
     { pkgs, config, ... }:
     let
       mkDocs =
-        { module, header }:
+        {
+          name,
+          module,
+          header,
+        }:
         let
           eval = lib.evalModules {
             modules = [
@@ -20,27 +24,36 @@
           };
           docs = pkgs.nixosOptionsDoc {
             inherit (eval) options;
-            # hide /nix/store/* prefix
-            transformOptions = opt: opt // { declarations = [ ]; };
+            # remove /nix/store/* prefix
+            transformOptions = opt: lib.removeAttrs opt [ "declarations" ];
           };
         in
-        pkgs.runCommand "docs.md" { } ''
-          sed '1s/^/# ${header}\n\n/' ${docs.optionsCommonMark} > $out
-          ${lib.getExe pkgs.nodePackages.prettier} --write $out
-        '';
+        {
+          inherit name;
+          path = pkgs.runCommand name { } ''
+            sed '1s/^/# ${header}\n\n/' ${docs.optionsCommonMark} > $out
+            ${lib.getExe pkgs.comrak} --inplace $out
+          '';
+        };
     in
     {
       apps.docs.program = pkgs.writeShellApplication {
         name = "docs";
         text = ''
-          cp -f ${config.packages.docker-manifest-docs} ./docker-manifest/docs.md
+          mkdir -p ./docs
+          cp -f ${config.packages.docs}/*.md ./docs
         '';
       };
       packages = {
-        docker-manifest-docs = mkDocs {
-          module = ./docker-manifest/module.nix;
-          header = "`flocken.legacyPackages.\${system}.mkDockerManifest`";
-        };
+        docs = pkgs.linkFarm "docs" (
+          map mkDocs [
+            {
+              name = "docker-manifest.md";
+              module = ./docker-manifest/module.nix;
+              header = "`flocken.legacyPackages.\${system}.mkDockerManifest`";
+            }
+          ]
+        );
       };
     };
 }
