@@ -56,8 +56,8 @@ in
       '';
     };
     defaultBranch = mkOption {
-      type = types.nullOr types.str;
-      default = null;
+      type = types.str;
+      default = "main";
       description = ''
         Name of the git branch that is used as default for the `latest` tag.
         Defaults to `main`.
@@ -74,12 +74,6 @@ in
       readOnly = true;
       internal = true;
       description = "List of unique tags";
-    };
-    firstTag = mkOption {
-      type = types.str;
-      readOnly = true;
-      internal = true;
-      description = "The first tag";
     };
     autoTags = mkOption {
       type = types.submodule {
@@ -153,14 +147,15 @@ in
           };
           token = mkOption {
             type = types.str;
+            default = "$GITHUB_TOKEN";
             description = ''
               GitHub access token.
               Used as default value for `registries."ghcr.io".password`.
             '';
           };
           actor = mkOption {
-            type = types.str;
-            default = builtins.getEnv "GITHUB_ACTOR";
+            type = types.nullOr types.str;
+            default = lib.maybeEnv "GITHUB_ACTOR" null;
             description = ''
               GitHub actor.
               Used as default value for `registries."ghcr.io".username`.
@@ -168,8 +163,8 @@ in
             '';
           };
           repo = mkOption {
-            type = types.str;
-            default = builtins.getEnv "GITHUB_REPOSITORY";
+            type = types.nullOr types.str;
+            default = lib.maybeEnv "GITHUB_REPOSITORY" null;
             description = ''
               Full name of the GitHub repository (e.g., `mirkolenz/flocken`).
               Used as default value for `registries."ghcr.io".repo`.
@@ -177,10 +172,12 @@ in
             '';
           };
           branch = mkOption {
-            type = types.str;
-            default = lib.optionalString (builtins.getEnv "GITHUB_REF_TYPE" == "branch") (
-              builtins.getEnv "GITHUB_REF_NAME"
-            );
+            type = types.nullOr types.str;
+            default =
+              if (builtins.getEnv "GITHUB_REF_TYPE" == "branch") then
+                lib.maybeEnv "GITHUB_REF_NAME" null
+              else
+                null;
             description = ''
               Name of the git branch.
               Defaults to the environment variable `GITHUB_REF_NAME` in GitHub actions if `GITHUB_REF_TYPE == "branch"`.
@@ -222,22 +219,41 @@ in
       description = "The name of the manifest";
     };
   };
-  config = {
-    parsedVersion =
-      if lib.flocken.isNotEmpty config.version then lib.removePrefix "v" config.version else null;
-    uniqueTags = lib.unique config.tags;
-    firstTag = lib.head config.uniqueTags;
-    branch = lib.mkDefault (
-      if lib.flocken.isNotEmpty config.github.branch then config.github.branch else null
-    );
-    defaultBranch = lib.mkDefault (
-      if (githubData ? default_branch) then githubData.default_branch else "main"
-    );
-    annotations.org.opencontainers.image = lib.mkMerge [
-      {
+  config = lib.mkMerge [
+    {
+      parsedVersion =
+        if lib.flocken.isNotEmpty config.version then lib.removePrefix "v" config.version else null;
+      uniqueTags = lib.unique (lib.filter lib.flocken.isNotEmpty config.tags);
+      annotations.org.opencontainers.image = {
         version = config.parsedVersion;
-      }
-      (lib.mkIf config.github.enable {
+      };
+      annotationLeaves = lib.filterAttrs (name: value: lib.flocken.isNotEmpty value) (
+        lib.flocken.getLeaves config.annotations
+      );
+      tags = lib.concatLists [
+        (lib.optional config.autoTags.branch config.branch)
+        (lib.optional (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
+        (lib.optional config.autoTags.version config.parsedVersion)
+        (lib.optional (
+          config.autoTags.majorMinor && config.parsedVersion != null && !isPreRelease config.parsedVersion
+        ) (lib.versions.majorMinor config.parsedVersion))
+        (lib.optional (
+          config.autoTags.major && config.parsedVersion != null && !isPreRelease config.parsedVersion
+        ) (lib.versions.major config.parsedVersion))
+      ];
+    }
+    (lib.mkIf config.github.enable {
+      branch = lib.mkDefault config.github.branch;
+      defaultBranch = lib.mkIf ((githubData.default_branch or null) != null) (
+        lib.mkDefault githubData.default_branch
+      );
+      registries.${config.github.registry} = {
+        enable = config.github.enableRegistry;
+        repo = config.github.repo;
+        username = config.github.actor;
+        password = config.github.token;
+      };
+      annotations.org.opencontainers.image = {
         # https://github.com/opencontainers/image-spec/blob/main/annotations.md
         authors = githubData.owner.html_url or null;
         url = githubData.homepage or null;
@@ -246,35 +262,7 @@ in
         licenses = githubData.license.spdx_id or null;
         title = githubData.name or null;
         description = githubData.description or null;
-      })
-    ];
-    annotationLeaves = lib.filterAttrs (name: value: lib.flocken.isNotEmpty value) (
-      lib.flocken.getLeaves config.annotations
-    );
-    registries = {
-      ${config.github.registry} = {
-        enable = config.github.enable && config.github.enableRegistry;
-        repo = config.github.repo;
-        username = config.github.actor;
-        password = config.github.token;
       };
-    };
-    tags = lib.concatLists [
-      (lib.optional (config.autoTags.branch && lib.flocken.isNotEmpty config.branch) config.branch)
-      (lib.optional (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
-      (lib.optional (
-        config.autoTags.version && lib.flocken.isNotEmpty config.parsedVersion
-      ) config.parsedVersion)
-      (lib.optional (
-        config.autoTags.majorMinor
-        && lib.flocken.isNotEmpty config.parsedVersion
-        && !isPreRelease config.parsedVersion
-      ) (lib.versions.majorMinor config.parsedVersion))
-      (lib.optional (
-        config.autoTags.major
-        && lib.flocken.isNotEmpty config.parsedVersion
-        && !isPreRelease config.parsedVersion
-      ) (lib.versions.major config.parsedVersion))
-    ];
-  };
+    })
+  ];
 }

@@ -17,8 +17,6 @@ let
       ];
     }).config;
 
-  mkCliFlags = lib.cli.toGNUCommandLineShell { };
-
   podmanExe = lib.getExe' podman "podman";
   craneExe = lib.getExe' crane "crane";
 
@@ -29,18 +27,18 @@ let
   ];
   replacementAnnotationChars = map (x: "") illegalAnnotationChars;
   escapeAnnotation = lib.replaceStrings illegalAnnotationChars replacementAnnotationChars;
-
-  annotations = lib.mapAttrsToList (
-    key: value: ''${key}=${escapeAnnotation value}''
-  ) cfg.annotationLeaves;
 in
-assert lib.assertMsg (lib.length cfg.uniqueTags > 0) "At least one tag must be specified";
+
+assert lib.assertMsg (lib.length cfg.uniqueTags > 0) "At least one `tag` must be set";
+
 assert lib.assertMsg (
   lib.length cfg.imageFiles > 0 || lib.length cfg.imageStreams > 0
-) "At least one image or imageStream must be specified";
+) "At least one `imageFile` or `imageStream` must be set";
+
 assert lib.assertMsg (
-  !(cfg.github.enable && lib.flocken.isEmpty cfg.github.actor && lib.flocken.isEmpty cfg.github.repo)
-) "The GitHub actor and/or repo are empty";
+  !(cfg.github.enable && (cfg.github.actor == null || cfg.github.repo == null))
+) "`github.actor` and `github.repo` must be set when `github.enable` is true";
+
 writeShellScriptBin "docker-manifest" ''
   function cleanup {
     rm -rf "$TMPDIR"
@@ -63,8 +61,13 @@ writeShellScriptBin "docker-manifest" ''
   ${podmanExe} manifest create \
     --annotation "org.opencontainers.image.created=$(${lib.getExe' coreutils "date"} --iso-8601=seconds)" \
     --annotation "org.opencontainers.image.revision=$(${lib.getExe git} rev-parse HEAD)" \
-    ${mkCliFlags { annotation = annotations; }} \
-    "${cfg.manifestName}" \
+    ${
+      lib.concatLines (
+        lib.mapAttrsToList (
+          key: value: ''--annotation "${key}=${escapeAnnotation value}" \''
+        ) cfg.annotationLeaves
+      )
+    } "${cfg.manifestName}" \
     || exit 1
 
   ${lib.concatMapStringsSep "\n" (imageFile: ''
@@ -99,14 +102,14 @@ writeShellScriptBin "docker-manifest" ''
         --all \
         --format ${cfg.format} \
         "${cfg.manifestName}" \
-        "docker://${registryName}/${registryParams.repo}:${cfg.firstTag}" \
+        "docker://${registryName}/${registryParams.repo}:${lib.head cfg.uniqueTags}" \
         || exit 1
 
       ${lib.concatMapStringsSep "\n" (tag: ''
         ${craneExe} tag \
-          "${registryName}/${registryParams.repo}:${cfg.firstTag}" \
+          "${registryName}/${registryParams.repo}:${lib.head cfg.uniqueTags}" \
           "${tag}"
-      '') cfg.tags}
+      '') (lib.tail cfg.uniqueTags)}
     '') cfg.registries
   )}
 ''
