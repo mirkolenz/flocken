@@ -1,4 +1,4 @@
-{ self, lib, ... }:
+{ lib, ... }:
 {
   perSystem =
     { pkgs, config, ... }:
@@ -6,37 +6,34 @@
       mkDocs =
         { module, header }:
         let
-          eval = import "${pkgs.path}/nixos/lib/eval-config.nix" {
-            system = null;
-            baseModules = [ ];
+          eval = lib.evalModules {
             modules = [
               module
               (
                 { lib, ... }:
                 {
                   options._module.args = lib.mkOption { visible = false; };
+                  config._module.check = false;
                 }
               )
             ];
           };
           docs = pkgs.nixosOptionsDoc {
             inherit (eval) options;
+            # hide /nix/store/* prefix
+            transformOptions = opt: opt // { declarations = [ ]; };
           };
         in
-        pkgs.runCommand "docs" { } ''
-          mkdir -p $out
-          substitute ${docs.optionsCommonMark} $out/docs.md \
-            --replace-fail "file://${self.outPath}" "https://github.com/mirkolenz/flocken/blob/main" \
-            --replace-fail "${self.outPath}" "flocken"
-          sed -i '1s/^/# ${header}\n\n/' $out/docs.md
-          ${lib.getExe pkgs.nodePackages.prettier} --write $out/docs.md
+        pkgs.runCommand "docs.md" { } ''
+          sed '1s/^/# ${header}\n\n/' ${docs.optionsCommonMark} > $out
+          ${lib.getExe pkgs.nodePackages.prettier} --write $out
         '';
     in
     {
       apps.docs.program = pkgs.writeShellApplication {
         name = "docs";
         text = ''
-          cp ${config.packages.docker-manifest-docs}/docs.md ./docker-manifest/docs.md
+          cp -f ${config.packages.docker-manifest-docs} ./docker-manifest/docs.md
         '';
       };
       packages = {
