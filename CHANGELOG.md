@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.4.2](https://github.com/mirkolenz/flocken/compare/v2.4.1...v2.4.2) (2025-01-16)
+
+### Bug Fixes
+
+* prefer custom branch over GitHub value ([#85](https://github.com/mirkolenz/flocken/issues/85)) ([062cc1b](https://github.com/mirkolenz/flocken/commit/062cc1bfc7c4563b02bb167384e668b270fdebc6))
+
 ## [2.4.1](https://github.com/mirkolenz/flocken/compare/v2.4.0...v2.4.1) (2024-12-21)
 
 ### Bug Fixes
