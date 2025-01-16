@@ -1,5 +1,6 @@
 {
   lib,
+  lib',
   writeShellScriptBin,
   podman,
   coreutils,
@@ -12,6 +13,7 @@ let
   cfg =
     (lib.evalModules {
       modules = [
+        { _module.args = { inherit lib'; }; }
         ./module.nix
         userModule
       ];

@@ -49,7 +49,7 @@
           map mkDocs [
             {
               name = "docker-manifest.md";
-              module = ./docker-manifest/module.nix;
+              module = ../src/docker-manifest/module.nix;
               header = "`flocken.legacyPackages.\${system}.mkDockerManifest`";
             }
           ]

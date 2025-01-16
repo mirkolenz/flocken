@@ -39,11 +39,10 @@ Flocken currently provides the following attributes:
 - `getAttrFromDottedPath PATH ATTRS`: Like `attrByDottedPath`, but without a default value. If it doesn't find the path it will throw an error.
 - `setAttrByDottedPath PATH VALUE`: Create a new attribute set with value set at the nested attribute location specified in PATH.
 
-### [`flocken.legacyPackages.${system}.mkDockerManifest`](./docker-manifest/default.md)
+### [`flocken.legacyPackages.${system}.mkDockerManifest`](./docs/docker-manifest.md)
 
 Create and push a Docker manifest to a registry.
 This is particularly useful for multi-arch images.
-An overview of the configuration options is available in the [module definition](./docker-manifest/module.nix).
 Some arguments (e.g., `version`) differ between invocations and thus need to be provided in a dynamic fashion.
 We recommend to use environment variables for this purpose.
 For instance, when running in a GitHub action, you only have to provide a value for `VERSION` and `GH_TOKEN` and then can use the following snippet:

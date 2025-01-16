@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  lib',
+  ...
+}:
 let
   inherit (lib) types mkOption mkEnableOption;
   isPreRelease = x: lib.hasInfix "-" x;
@@ -18,9 +23,8 @@ let
     ","
   ];
   replacementAnnotationChars = map (x: "") illegalAnnotationChars;
-  escapeAnnotations = lib.mapAttrs (
-    name: value: lib.replaceStrings illegalAnnotationChars replacementAnnotationChars value
-  );
+  escapeAnnotations =
+    name: value: lib.replaceStrings illegalAnnotationChars replacementAnnotationChars value;
 in
 {
   imports = [
@@ -226,15 +230,13 @@ in
   config = lib.mkMerge [
     {
       parsedVersion =
-        if lib.flocken.isNotEmpty config.version then lib.removePrefix "v" config.version else null;
-      uniqueTags = lib.unique (lib.filter lib.flocken.isNotEmpty config.tags);
+        if lib'.isNotEmpty config.version then lib.removePrefix "v" config.version else null;
+      uniqueTags = lib.unique (lib.filter lib'.isNotEmpty config.tags);
       annotations.org.opencontainers.image = {
         version = config.parsedVersion;
       };
       annotationLeaves = lib.mapAttrs escapeAnnotations (
-        lib.filterAttrs (name: value: lib.flocken.isNotEmpty value) (
-          lib.flocken.getLeaves config.annotations
-        )
+        lib.filterAttrs (name: value: lib'.isNotEmpty value) (lib'.getLeaves config.annotations)
       );
       tags = lib.concatLists [
         (lib.optional config.autoTags.branch config.branch)

@@ -7,61 +7,12 @@
   };
   outputs =
     inputs@{
-      self,
-      nixpkgs,
       flake-parts,
       systems,
       ...
     }:
-    let
-      lib = nixpkgs.lib.extend self.overlays.lib;
-    in
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import systems;
-      imports = [ ./docs.nix ];
-      flake = {
-        lib = import ./lib nixpkgs.lib;
-        overlays = {
-          lib = final: prev: {
-            flocken = import ./lib prev;
-          };
-        };
-      };
-      perSystem =
-        {
-          pkgs,
-          config,
-          ...
-        }:
-        {
-          formatter = pkgs.nixfmt-rfc-style;
-          legacyPackages = {
-            mkDockerManifest = pkgs.callPackage ./docker-manifest {
-              inherit lib;
-            };
-          };
-          checks = {
-            docker-manifest = config.legacyPackages.mkDockerManifest {
-              github = {
-                enable = true;
-                repo = "mirkolenz/flocken";
-                actor = "mirkolenz";
-                token = "$GH_TOKEN";
-              };
-              branch = "main";
-              version = "1.0.0";
-              imageFiles = [
-                (pkgs.dockerTools.buildLayeredImage {
-                  name = "dummy-image";
-                })
-              ];
-              imageStreams = [
-                (pkgs.dockerTools.streamLayeredImage {
-                  name = "dummy-image-stream";
-                })
-              ];
-            };
-          };
-        };
+      imports = [ ./modules ];
     };
 }
