@@ -23,10 +23,12 @@ let
   craneExe = lib.getExe' crane "crane";
 in
 
-assert lib.assertMsg (lib.length cfg.uniqueTags > 0) "At least one `tag` must be set";
+assert lib.assertMsg (cfg.uniqueTags != [ ]) "At least one `tag` must be set";
+
+assert lib.assertMsg (cfg.registries != { }) "At least one `registry` must be set";
 
 assert lib.assertMsg (
-  lib.length cfg.imageFiles > 0 || lib.length cfg.imageStreams > 0
+  cfg.imageFiles != [ ] || cfg.imageStreams != [ ]
 ) "At least one `imageFile` or `imageStream` must be set";
 
 assert lib.assertMsg (
