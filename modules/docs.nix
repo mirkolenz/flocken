@@ -4,8 +4,8 @@
     { pkgs, config, ... }:
     let
       mkDocs =
+        name:
         {
-          name,
           module,
           header,
         }:
@@ -29,8 +29,8 @@
           };
         in
         {
-          inherit name;
-          path = pkgs.runCommand name { } ''
+          name = "${name}-docs";
+          path = pkgs.runCommand "${name}.md" { } ''
             sed '1s/^/# ${header}\n\n/' ${docs.optionsCommonMark} > $out
             ${lib.getExe pkgs.comrak} --inplace $out
           '';
@@ -46,13 +46,12 @@
       };
       packages = {
         docs = pkgs.linkFarm "docs" (
-          map mkDocs [
-            {
-              name = "docker-manifest.md";
+          lib.mapAttrsToList mkDocs {
+            docker-manifest = {
               module = ../src/docker-manifest/module.nix;
               header = "`flocken.legacyPackages.\${system}.mkDockerManifest`";
-            }
-          ]
+            };
+          }
         );
       };
     };
