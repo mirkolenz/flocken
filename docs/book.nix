@@ -2,13 +2,17 @@
   lib,
   stdenvNoCC,
   mdbook,
+  nixdoc,
   writeShellApplication,
   python3,
   dockerManifestMarkdown,
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   name = "book";
-  nativeBuildInputs = [ mdbook ];
+  nativeBuildInputs = [
+    mdbook
+    nixdoc
+  ];
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [
@@ -21,6 +25,11 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
     ln -s ${dockerManifestMarkdown} src/docker-manifest.md
     ln -s ${../README.md} src/README.md
+    nixdoc \
+      --category "" \
+      --description "" \
+      --prefix "" \
+      --file ${../lib/default.nix} > src/lib.md
     mdbook build
 
     runHook postBuild
