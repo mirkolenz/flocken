@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0](https://github.com/mirkolenz/flocken/compare/v2.4.2...v2.5.0) (2025-01-20)
+
+### Features
+
+* re-implement docker manifest using nix modules ([e8826ba](https://github.com/mirkolenz/flocken/commit/e8826ba3a4c10a739702f0506e428a85bf83882d))
+
+### Bug Fixes
+
+* **manifest:** assert that at least one registry is set ([bc92bbd](https://github.com/mirkolenz/flocken/commit/bc92bbd6d0c63809935be80525b1b374dd2095ec))
+* **manifest:** default to env var version if available ([78de0e0](https://github.com/mirkolenz/flocken/commit/78de0e0782f2f6b12841b8ea8ea84f2d3babbb4f))
+* **manifest:** modularize config for better maintainability ([9a85d58](https://github.com/mirkolenz/flocken/commit/9a85d58e32d5c8485bee45211cf15bd9882ef569))
+
 ## [2.4.2](https://github.com/mirkolenz/flocken/compare/v2.4.1...v2.4.2) (2025-01-16)
 
 ### Bug Fixes
