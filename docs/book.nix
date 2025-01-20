@@ -5,7 +5,7 @@
   nixdoc,
   writeShellApplication,
   python3,
-  dockerManifestMarkdown,
+  optionsMarkdown,
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   name = "book";
@@ -23,7 +23,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    ln -s ${dockerManifestMarkdown} src/docker-manifest.md
+    cp ${optionsMarkdown}/*.md src
     ln -s ${../README.md} src/README.md
     nixdoc \
       --category "" \
