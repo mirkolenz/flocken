@@ -1,0 +1,14 @@
+[book]
+title = "flocken"
+description = "Flocken (German for 'flakes') is a collection of utilities for nix flakes."
+authors = ["Mirko Lenz"]
+language = "en"
+multilingual = false
+
+[output.html]
+default-theme = "light"
+git-repository-icon = "fa-github"
+git-repository-url = "https://github.com/mirkolenz/flocken"
+no-section-label = true
+preferred-dark-theme = "ayu"
+smart-punctuation = true
