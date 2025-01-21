@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v16
-      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - uses: DeterminateSystems/magic-nix-cache-action@v9
       - run: nix flake check --show-trace --print-build-logs --impure
   release:
     runs-on: ubuntu-latest
@@ -43,7 +43,7 @@ jobs:
           ref: ${{ needs.release.outputs.ref }}
       - uses: actions/configure-pages@v5
       - uses: DeterminateSystems/nix-installer-action@v16
-      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - uses: DeterminateSystems/magic-nix-cache-action@v9
       - run: nix build .#docs
       - uses: actions/upload-pages-artifact@v3
         with:
