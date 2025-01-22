@@ -44,10 +44,10 @@ writeShellApplication {
       rm -rf "$TMPDIR"
       ${podmanExe} manifest rm "${cfg.manifestName}" || true
 
-      ${lib.concatMapStringsSep "\n" (registryName: ''
-        ${podmanExe} logout "${registryName}" || true
-        ${craneExe} auth logout "${registryName}" || true
-      '') (lib.attrNames cfg.registries)}
+      ${lib.concatMapStringsSep "\n" (registry: ''
+        ${podmanExe} logout "${registry.name}" || true
+        ${craneExe} auth logout "${registry.name}" || true
+      '') (lib.attrValues cfg.registries)}
     }
     trap cleanup EXIT
 
@@ -85,35 +85,33 @@ writeShellApplication {
 
     set -x # echo on
 
-    ${lib.concatLines (
-      lib.mapAttrsToList (registryName: registryParams: ''
-        set +x # echo off
+    ${lib.concatMapStringsSep "\n" (registry: ''
+      set +x # echo off
 
-        echo "podman login ${registryName}"
-        ${podmanExe} login \
-          --username "${registryParams.username}" \
-          --password "${registryParams.password}" \
-          "${registryName}"
+      echo "podman login ${registry.name}"
+      ${podmanExe} login \
+        --username "${registry.username}" \
+        --password "${registry.password}" \
+        "${registry.name}"
 
-        echo "crane login ${registryName}"
-        ${craneExe} auth login "${registryName}" \
-          --username "${registryParams.username}" \
-          --password "${registryParams.password}"
+      echo "crane login ${registry.name}"
+      ${craneExe} auth login "${registry.name}" \
+        --username "${registry.username}" \
+        --password "${registry.password}"
 
-        set -x # echo on
+      set -x # echo on
 
-        ${podmanExe} manifest push \
-          --all \
-          --format ${cfg.format} \
-          "${cfg.manifestName}" \
-          "docker://${registryName}/${registryParams.repo}:${lib.head cfg.parsedTags}"
+      ${podmanExe} manifest push \
+        --all \
+        --format ${cfg.format} \
+        "${cfg.manifestName}" \
+        "docker://${registry.name}/${registry.repo}:${lib.head cfg.parsedTags}"
 
-        ${lib.concatMapStringsSep "\n" (tag: ''
-          ${craneExe} tag \
-            "${registryName}/${registryParams.repo}:${lib.head cfg.parsedTags}" \
-            "${tag}"
-        '') (lib.tail cfg.parsedTags)}
-      '') cfg.registries
-    )}
+      ${lib.concatMapStringsSep "\n" (tag: ''
+        ${craneExe} tag \
+          "${registry.name}/${registry.repo}:${lib.head cfg.parsedTags}" \
+          "${tag}"
+      '') (lib.tail cfg.parsedTags)}
+    '') (lib.attrValues cfg.registries)}
   '';
 }
