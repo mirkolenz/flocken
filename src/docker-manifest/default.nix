@@ -32,7 +32,7 @@ assert lib.assertMsg (
 ) "At least one `imageFile` or `imageStream` must be set";
 
 assert lib.assertMsg (
-  !(cfg.github.enable && (cfg.github.actor == null || cfg.github.repo == null))
+  !(cfg.github.enable && (cfg.github.actor == "" || cfg.github.repo == ""))
 ) "`github.actor` and `github.repo` must be set when `github.enable` is true";
 
 writeShellScriptBin "docker-manifest" ''

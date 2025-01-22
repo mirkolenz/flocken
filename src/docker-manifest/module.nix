@@ -50,20 +50,20 @@ in
       '';
     };
     version = mkOption {
-      type = types.nullOr types.str;
-      default = lib.maybeEnv "VERSION" null;
+      type = types.str;
+      default = builtins.getEnv "VERSION";
       defaultText = "$VERSION || null";
       description = "Semantic version of the image (e.g., `v1.0.0` or `1.0.0`).";
     };
     parsedVersion = mkOption {
-      type = types.nullOr types.str;
+      type = types.str;
       readOnly = true;
       internal = true;
       description = "The version without the 'v' prefix";
     };
     branch = mkOption {
-      type = types.nullOr types.str;
-      default = null;
+      type = types.str;
+      default = "";
       defaultText = "github.branch || null";
       description = ''
         Name of the git branch (e.g., `main`).
@@ -78,7 +78,7 @@ in
       '';
     };
     tags = mkOption {
-      type = types.listOf (types.nullOr types.str);
+      type = types.listOf types.str;
       default = [ ];
       description = "List of custom/additional tags to be added to the manifest.";
     };
@@ -168,8 +168,8 @@ in
             '';
           };
           actor = mkOption {
-            type = types.nullOr types.str;
-            default = lib.maybeEnv "GITHUB_ACTOR" null;
+            type = types.str;
+            default = builtins.getEnv "GITHUB_ACTOR";
             defaultText = "$GITHUB_ACTOR || null";
             description = ''
               GitHub actor.
@@ -177,8 +177,8 @@ in
             '';
           };
           repo = mkOption {
-            type = types.nullOr types.str;
-            default = lib.maybeEnv "GITHUB_REPOSITORY" null;
+            type = types.str;
+            default = builtins.getEnv "GITHUB_REPOSITORY";
             defaultText = "$GITHUB_REPOSITORY || null";
             description = ''
               Full name of the GitHub repository (e.g., `mirkolenz/flocken`).
@@ -186,12 +186,10 @@ in
             '';
           };
           branch = mkOption {
-            type = types.nullOr types.str;
-            default =
-              if (builtins.getEnv "GITHUB_REF_TYPE" == "branch") then
-                lib.maybeEnv "GITHUB_REF_NAME" null
-              else
-                null;
+            type = types.str;
+            default = lib.optionalString (builtins.getEnv "GITHUB_REF_TYPE" == "branch") (
+              builtins.getEnv "GITHUB_REF_NAME"
+            );
             defaultText = "$GITHUB_REF_NAME || null";
             description = "Name of the git branch.";
           };
@@ -230,31 +228,29 @@ in
   };
   config = lib.mkMerge [
     {
-      parsedVersion = lib'.maybe (lib'.isNotEmpty config.version) (lib.removePrefix "v" config.version);
-      parsedTags = lib.unique (lib.filter lib'.isNotEmpty config.tags);
+      parsedVersion = lib.optionalString (config.version != "") (lib.removePrefix "v" config.version);
+      parsedTags = lib.unique (lib.filter (value: value != "") config.tags);
       annotations.org.opencontainers.image = {
         version = config.parsedVersion;
       };
       parsedAnnotations = lib.mapAttrs escapeAnnotations (
-        lib.filterAttrs (name: value: lib'.isNotEmpty value) (lib'.getLeaves config.annotations)
+        lib.filterAttrs (name: value: value != "") (lib'.getLeaves config.annotations)
       );
       tags = [
-        (lib'.maybe config.autoTags.branch config.branch)
-        (lib'.maybe (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
-        (lib'.maybe config.autoTags.version config.parsedVersion)
-        (lib'.maybe (
-          config.autoTags.majorMinor && config.parsedVersion != null && !isPreRelease config.parsedVersion
+        (lib.optionalString config.autoTags.branch config.branch)
+        (lib.optionalString (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
+        (lib.optionalString config.autoTags.version config.parsedVersion)
+        (lib.optionalString (
+          config.autoTags.majorMinor && config.parsedVersion != "" && !isPreRelease config.parsedVersion
         ) (lib.versions.majorMinor config.parsedVersion))
-        (lib'.maybe (
-          config.autoTags.major && config.parsedVersion != null && !isPreRelease config.parsedVersion
+        (lib.optionalString (
+          config.autoTags.major && config.parsedVersion != "" && !isPreRelease config.parsedVersion
         ) (lib.versions.major config.parsedVersion))
       ];
     }
     (lib.mkIf config.github.enable {
       branch = lib.mkDefault config.github.branch;
-      defaultBranch = lib.mkIf ((githubData.default_branch or null) != null) (
-        lib.mkDefault githubData.default_branch
-      );
+      defaultBranch = lib.mkIf (githubData ? default_branch) (lib.mkDefault githubData.default_branch);
       registries.${config.github.registry} = {
         enable = config.github.enableRegistry;
         repo = config.github.repo;
@@ -263,13 +259,13 @@ in
       };
       annotations.org.opencontainers.image = {
         # https://github.com/opencontainers/image-spec/blob/main/annotations.md
-        authors = githubData.owner.html_url or null;
-        url = githubData.homepage or null;
-        source = githubData.html_url or null;
-        vendor = githubData.owner.login or null;
-        licenses = githubData.license.spdx_id or null;
-        title = githubData.name or null;
-        description = githubData.description or null;
+        authors = githubData.owner.html_url or "";
+        url = githubData.homepage or "";
+        source = githubData.html_url or "";
+        vendor = githubData.owner.login or "";
+        licenses = githubData.license.spdx_id or "";
+        title = githubData.name or "";
+        description = githubData.description or "";
       };
     })
   ];
