@@ -19,12 +19,12 @@ The project supports semantic versioning, so we advise to pin the major version 
 }
 ```
 
-## [`flocken.lib`](https://mirkolenz.github.io/lib.html)
+## [`flocken.lib`](https://mirkolenz.github.io/flocken/lib.html)
 
 A collection of utility functions for nix flakes.
 See the documentation for more details.
 
-## [`flocken.legacyPackages.${system}.mkDockerManifest`](https://mirkolenz.github.io/docker-manifest.html)
+## [`flocken.legacyPackages.${system}.mkDockerManifest`](https://mirkolenz.github.io/flocken/docker-manifest.html)
 
 Create and push a Docker manifest to a registry.
 This is particularly useful for multi-arch images.
