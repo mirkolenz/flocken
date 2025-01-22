@@ -73,7 +73,14 @@ writeShellScriptBin "docker-manifest" ''
     ${podmanExe} manifest add "${cfg.manifestName}" "docker-archive:$TMPDIR/image-stream-${toString idx}.tar.gz" || exit 1
   '') cfg.imageStreams}
 
+  set +x # echo off
+
+  echo "Manifest: ${cfg.manifestName}"
   ${podmanExe} manifest inspect "${cfg.manifestName}"
+  echo "Registries: ${toString (lib.attrNames cfg.registries)}"
+  echo "Tags: ${toString cfg.parsedTags}"
+
+  set -x # echo on
 
   ${lib.concatLines (
     lib.mapAttrsToList (registryName: registryParams: ''
