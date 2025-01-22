@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.2](https://github.com/mirkolenz/flocken/compare/v2.5.1...v2.5.2) (2025-01-22)
+
+### Bug Fixes
+
+* **lib:** add maybe ([a0905c9](https://github.com/mirkolenz/flocken/commit/a0905c9f46179acd387f588e8b24f4e188914609))
+* **manifest:** default value for default branch ([d248654](https://github.com/mirkolenz/flocken/commit/d248654f3fa33813c3645bdcad1b031fbad73e10))
+* **manifest:** handle null data in github api ([76f1eb9](https://github.com/mirkolenz/flocken/commit/76f1eb9c255ab50dd85a386a3719b20977a9d43b))
+* **manifest:** migrate to shell application ([89d274c](https://github.com/mirkolenz/flocken/commit/89d274c17292fd17e2eaa054a03f08997a3580f7))
+* **manifest:** print tags and registries ([9c1a698](https://github.com/mirkolenz/flocken/commit/9c1a698b7de0a5c029c60943ef14f672b181da4a))
+* **manifest:** respect registry name option ([ee26f17](https://github.com/mirkolenz/flocken/commit/ee26f1787dd67f475cb6fda21e1d24cebee28bcc))
+* **manifest:** use empty string instead of null ([8104ff0](https://github.com/mirkolenz/flocken/commit/8104ff0fccb2c262cd481749b4fc715cac3a4c32))
+
 ## [2.5.1](https://github.com/mirkolenz/flocken/compare/v2.5.0...v2.5.1) (2025-01-22)
 
 ### Bug Fixes
