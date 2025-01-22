@@ -78,7 +78,7 @@ in
       '';
     };
     tags = mkOption {
-      type = types.listOf types.str;
+      type = types.listOf (types.nullOr types.str);
       default = [ ];
       description = "List of custom/additional tags to be added to the manifest.";
     };

@@ -9,7 +9,6 @@
       checks = {
         docker-manifest = config.legacyPackages.mkDockerManifest {
           branch = "main";
-          version = "1.0.0";
           imageFiles = with self.packages; [ x86_64-linux.nginx ];
           imageStreams = with self.packages; [ aarch64-linux.nginxStream ];
           registries."docker-manifest-dummy.mirkolenz.com" = {
