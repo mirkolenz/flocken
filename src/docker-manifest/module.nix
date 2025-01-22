@@ -161,7 +161,6 @@ in
           token = mkOption {
             type = types.str;
             default = "$GITHUB_TOKEN";
-            defaultText = "$GITHUB_TOKEN";
             description = ''
               GitHub access token.
               Used as default value for `registries."ghcr.io".password`.
