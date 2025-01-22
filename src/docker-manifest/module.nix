@@ -227,7 +227,7 @@ in
   };
   config = lib.mkMerge [
     {
-      parsedVersion = lib.optionalString (config.version != "") (lib.removePrefix "v" config.version);
+      parsedVersion = lib.removePrefix "v" config.version;
       parsedTags = lib.unique (lib.filter (value: value != "") config.tags);
       annotations.org.opencontainers.image = {
         version = config.parsedVersion;
