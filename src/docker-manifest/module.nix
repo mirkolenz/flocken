@@ -230,8 +230,7 @@ in
   };
   config = lib.mkMerge [
     {
-      parsedVersion =
-        if lib'.isNotEmpty config.version then lib.removePrefix "v" config.version else null;
+      parsedVersion = lib'.maybe (lib'.isNotEmpty config.version) (lib.removePrefix "v" config.version);
       parsedTags = lib.unique (lib.filter lib'.isNotEmpty config.tags);
       annotations.org.opencontainers.image = {
         version = config.parsedVersion;
@@ -239,14 +238,14 @@ in
       parsedAnnotations = lib.mapAttrs escapeAnnotations (
         lib.filterAttrs (name: value: lib'.isNotEmpty value) (lib'.getLeaves config.annotations)
       );
-      tags = lib.concatLists [
-        (lib.optional config.autoTags.branch config.branch)
-        (lib.optional (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
-        (lib.optional config.autoTags.version config.parsedVersion)
-        (lib.optional (
+      tags = [
+        (lib'.maybe config.autoTags.branch config.branch)
+        (lib'.maybe (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
+        (lib'.maybe config.autoTags.version config.parsedVersion)
+        (lib'.maybe (
           config.autoTags.majorMinor && config.parsedVersion != null && !isPreRelease config.parsedVersion
         ) (lib.versions.majorMinor config.parsedVersion))
-        (lib.optional (
+        (lib'.maybe (
           config.autoTags.major && config.parsedVersion != null && !isPreRelease config.parsedVersion
         ) (lib.versions.major config.parsedVersion))
       ];
