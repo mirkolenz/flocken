@@ -82,7 +82,7 @@ in
       default = [ ];
       description = "List of custom/additional tags to be added to the manifest.";
     };
-    uniqueTags = mkOption {
+    parsedTags = mkOption {
       type = types.listOf types.str;
       readOnly = true;
       internal = true;
@@ -143,7 +143,7 @@ in
         Most `org.opencontainers.image` annotations are set automatically if the GitHub option is enabled.
       '';
     };
-    annotationLeaves = mkOption {
+    parsedAnnotations = mkOption {
       type = types.attrsOf types.str;
       readOnly = true;
       internal = true;
@@ -232,11 +232,11 @@ in
     {
       parsedVersion =
         if lib'.isNotEmpty config.version then lib.removePrefix "v" config.version else null;
-      uniqueTags = lib.unique (lib.filter lib'.isNotEmpty config.tags);
+      parsedTags = lib.unique (lib.filter lib'.isNotEmpty config.tags);
       annotations.org.opencontainers.image = {
         version = config.parsedVersion;
       };
-      annotationLeaves = lib.mapAttrs escapeAnnotations (
+      parsedAnnotations = lib.mapAttrs escapeAnnotations (
         lib.filterAttrs (name: value: lib'.isNotEmpty value) (lib'.getLeaves config.annotations)
       );
       tags = lib.concatLists [

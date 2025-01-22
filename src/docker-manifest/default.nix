@@ -23,7 +23,7 @@ let
   craneExe = lib.getExe' crane "crane";
 in
 
-assert lib.assertMsg (cfg.uniqueTags != [ ]) "At least one `tag` must be set";
+assert lib.assertMsg (cfg.parsedTags != [ ]) "At least one `tag` must be set";
 
 assert lib.assertMsg (cfg.registries != { }) "At least one `registry` must be set";
 
@@ -59,7 +59,7 @@ writeShellScriptBin "docker-manifest" ''
     --annotation "org.opencontainers.image.revision=$(${lib.getExe git} rev-parse HEAD)" \
     ${
       lib.concatLines (
-        lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}" \'') cfg.annotationLeaves
+        lib.mapAttrsToList (key: value: ''--annotation "${key}=${value}" \'') cfg.parsedAnnotations
       )
     } "${cfg.manifestName}" \
     || exit 1
@@ -96,14 +96,14 @@ writeShellScriptBin "docker-manifest" ''
         --all \
         --format ${cfg.format} \
         "${cfg.manifestName}" \
-        "docker://${registryName}/${registryParams.repo}:${lib.head cfg.uniqueTags}" \
+        "docker://${registryName}/${registryParams.repo}:${lib.head cfg.parsedTags}" \
         || exit 1
 
       ${lib.concatMapStringsSep "\n" (tag: ''
         ${craneExe} tag \
-          "${registryName}/${registryParams.repo}:${lib.head cfg.uniqueTags}" \
+          "${registryName}/${registryParams.repo}:${lib.head cfg.parsedTags}" \
           "${tag}"
-      '') (lib.tail cfg.uniqueTags)}
+      '') (lib.tail cfg.parsedTags)}
     '') cfg.registries
   )}
 ''
