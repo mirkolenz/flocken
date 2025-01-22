@@ -71,7 +71,7 @@ in
     };
     defaultBranch = mkOption {
       type = types.str;
-      default = "github.defaultBranch || 'main'";
+      default = "main";
       defaultText = "if `github.enable` then `$GITHUB_DEFAULT_BRANCH` else `main`";
       description = ''
         Name of the git branch that is used as default for the `latest` tag.
@@ -249,7 +249,7 @@ in
     }
     (lib.mkIf config.github.enable {
       branch = lib.mkDefault config.github.branch;
-      defaultBranch = lib.mkIf (githubData ? default_branch && githubData.default_branch != null) (
+      defaultBranch = lib.mkIf (githubData.default_branch or null != null) (
         lib.mkDefault githubData.default_branch
       );
       registries.${config.github.registry} = {
