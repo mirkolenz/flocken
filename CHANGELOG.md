@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.1](https://github.com/mirkolenz/flocken/compare/v2.5.0...v2.5.1) (2025-01-22)
+
+### Bug Fixes
+
+* **manifest:** allow tags to be null ([86118b3](https://github.com/mirkolenz/flocken/commit/86118b302a6e2a4f3680f699d048c2f6f58043fc))
+
 ## [2.5.0](https://github.com/mirkolenz/flocken/compare/v2.4.2...v2.5.0) (2025-01-20)
 
 ### Features
