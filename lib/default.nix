@@ -326,4 +326,32 @@ lib: rec {
     ```
   */
   setAttrByDottedPath = path: lib.setAttrByPath (lib.splitString "." path);
+
+  /**
+    Return the value if the condition is true, otherwise return null.
+
+    # Inputs
+
+    `cond`
+    : The condition to check.
+
+    `value`
+    : The value to return if the condition is true.
+
+    # Type
+
+    ```
+    maybe :: Bool -> Any -> Any
+    ```
+
+    # Examples
+
+    ```nix
+    maybe true "foo"
+    => "foo"
+    maybe false "foo"
+    => null
+    ```
+  */
+  maybe = cond: value: if cond then value else null;
 }
