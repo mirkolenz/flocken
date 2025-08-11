@@ -9,7 +9,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: DeterminateSystems/nix-installer-action@v19
       - run: nix flake check --show-trace --print-build-logs --impure
   release:
@@ -25,7 +25,7 @@ jobs:
       ref: ${{ steps.release.outputs.git-head }}
       released: ${{ steps.release.outputs.released }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: cihelper/action-semanticrelease-generic@v1
         id: release
   build-docs:
@@ -37,7 +37,7 @@ jobs:
       pages: read
     environment: github-pages
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.release.outputs.ref }}
       - uses: actions/configure-pages@v5
