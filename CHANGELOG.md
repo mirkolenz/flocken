@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.5.3](https://github.com/mirkolenz/flocken/compare/v2.5.2...v2.5.3) (2025-12-28)
+
+### Bug Fixes
+
+* **docker-manifest:** use default signature policy if missing on the host ([f148f5b](https://github.com/mirkolenz/flocken/commit/f148f5ba8fbe37325a2355f8fedc60a9c97b896d))
+
 ## [2.5.2](https://github.com/mirkolenz/flocken/compare/v2.5.1...v2.5.2) (2025-01-22)
 
 ### Bug Fixes
