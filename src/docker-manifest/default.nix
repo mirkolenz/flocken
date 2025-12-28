@@ -5,6 +5,7 @@
   podman,
   coreutils,
   crane,
+  skopeo,
   git,
   gzip,
 }:
@@ -37,7 +38,7 @@ assert lib.assertMsg (
 
 writeShellApplication {
   name = "docker-manifest";
-  text = ''
+  text = /* bash */ ''
     function cleanup {
       set -x # echo on
 
@@ -53,6 +54,15 @@ writeShellApplication {
 
     set -x # echo on
     TMPDIR="$(mktemp -d)"
+
+    # Starting with Podman 5.x, a policy.json file is required.
+    # If none exists, use skopeo's default permissive policy.
+    # https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md
+    # https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/virtualisation/containers.nix
+    if [[ ! -f "/etc/containers/policy.json" && ! -f "$HOME/.config/containers/policy.json" ]]; then
+      echo "No policy found, using skopeo's default instead."
+      install -Dm444 "${skopeo.policy}/default-policy.json" "$HOME/.config/containers/policy.json"
+    fi
 
     if ${podmanExe} manifest exists "${cfg.manifestName}"; then
       ${podmanExe} manifest rm "${cfg.manifestName}"
