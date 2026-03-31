@@ -28,22 +28,16 @@ lib: rec {
   */
   getModules =
     dir:
-    let
-      # Cannot use "${dir}/${name}" since that would return a string and not a path
-      # dir + "/${name}" would be valid as well
-      mkImport = name: dir + ("/" + name);
-      filterPath =
+    lib.pipe (lib.readDir dir) [
+      (lib.filterAttrs (name: _: !lib.hasPrefix "_" name))
+      (lib.filterAttrs (
         name: type:
-        !lib.hasPrefix "_" name
-        && (
-          (type == "regular" && lib.hasSuffix ".nix" name && name != "default.nix")
-          || (type == "directory" && builtins.pathExists (mkImport "${name}/default.nix"))
-        );
-      dirContents = builtins.readDir dir;
-      filteredContents = lib.filterAttrs filterPath dirContents;
-      filteredPaths = builtins.attrNames filteredContents;
-    in
-    builtins.map mkImport filteredPaths;
+        (type == "regular" && lib.hasSuffix ".nix" name && name != "default.nix")
+        || (type == "directory" && lib.pathExists (dir + "/${name}/default.nix"))
+      ))
+      lib.attrNames
+      (map (name: dir + "/${name}"))
+    ];
 
   /**
     Get a path as a list if it exists.
