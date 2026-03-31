@@ -70,7 +70,7 @@ lib: rec {
     => [ ]
     ```
   */
-  optionalPath = path: if builtins.pathExists path then [ path ] else [ ];
+  optionalPath = path: if lib.pathExists path then [ path ] else [ ];
 
   /**
     Check if a value of arbitrary type is empty.
@@ -156,7 +156,7 @@ lib: rec {
     => false
     ```
   */
-  isEnabled = x: builtins.hasAttr "enable" x && x.enable == true;
+  isEnabled = x: lib.hasAttr "enable" x && x.enable == true;
 
   /**
     Returns a list of GitHub SSH keys for a user.
@@ -198,9 +198,9 @@ lib: rec {
         inherit sha256;
         url = "https://api.github.com/users/${user}/keys";
       };
-      parsedResponse = builtins.fromJSON (builtins.readFile apiResponse);
+      parsedResponse = lib.fromJSON (lib.readFile apiResponse);
     in
-    builtins.map (x: x.key) parsedResponse;
+    map (x: x.key) parsedResponse;
 
   /**
     Get all leaves of an attrset.
@@ -233,17 +233,17 @@ lib: rec {
     let
       getLeavesPath =
         attrs: path:
-        if builtins.isAttrs attrs then
-          builtins.concatLists (lib.mapAttrsToList (key: value: getLeavesPath value (path ++ [ key ])) attrs)
+        if lib.isAttrs attrs then
+          lib.concatLists (lib.mapAttrsToList (key: value: getLeavesPath value (path ++ [ key ])) attrs)
         else
           [
             {
-              name = builtins.concatStringsSep "." path;
+              name = lib.concatStringsSep "." path;
               value = attrs;
             }
           ];
     in
-    attrs: builtins.listToAttrs (getLeavesPath attrs [ ]);
+    attrs: lib.listToAttrs (getLeavesPath attrs [ ]);
 
   /**
     Return an attribute from nested attribute sets.
