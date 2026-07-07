@@ -75,3 +75,27 @@ jobs:
           VERSION: "1.0.0"
           GITHUB_TOKEN: ${{ github.token }}
 ```
+
+### Signing with cosign
+
+Set `cosign.enable = true` to sign the pushed manifest with [cosign](https://github.com/sigstore/cosign).
+For keyless signing in GitHub Actions, two things are not obvious:
+
+1. The workflow job needs `id-token: write` in addition to `packages: write`, otherwise cosign cannot obtain an OIDC token and the run fails by design.
+2. cosign reuses the credentials that crane already wrote to the Docker config, so no extra login step is needed.
+
+```yaml
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+```
+
+Signatures produced with keyless signing can be verified as follows:
+
+```bash
+cosign verify \
+  --certificate-identity https://github.com/OWNER/REPO/.github/workflows/WORKFLOW.yml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  REGISTRY/REPO:TAG
+```

@@ -224,6 +224,27 @@ in
       default = "flocken";
       description = "The name of the manifest";
     };
+    cosign = mkOption {
+      type = types.submodule {
+        options = {
+          enable = mkEnableOption "signing the pushed manifest with cosign";
+          recursive = mkDisableOption "signing each per-platform image in the manifest list";
+          key = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "cosign.key";
+            description = "Path or KMS URI of a cosign key. Null means keyless OIDC signing.";
+          };
+          extraArgs = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "Extra arguments passed to cosign sign.";
+          };
+        };
+      };
+      default = { };
+      description = "Configuration for signing the manifest with cosign.";
+    };
   };
   config = lib.mkMerge [
     {

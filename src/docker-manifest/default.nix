@@ -5,6 +5,7 @@
   podman,
   coreutils,
   crane,
+  cosign,
   skopeo,
   git,
   gzip,
@@ -22,6 +23,7 @@ let
 
   podmanExe = lib.getExe podman;
   craneExe = lib.getExe crane;
+  cosignExe = lib.getExe cosign;
 in
 
 assert lib.assertMsg (cfg.parsedTags != [ ]) "At least one `tag` must be set";
@@ -125,6 +127,14 @@ writeShellApplication {
           "${registry.name}/${registry.repo}@$digest" \
           "${tag}"
       '') (lib.tail cfg.parsedTags)}
+
+      ${lib.optionalString cfg.cosign.enable ''
+        ${cosignExe} sign --yes \
+          ${lib.optionalString cfg.cosign.recursive "--recursive"} \
+          ${lib.optionalString (cfg.cosign.key != null) ''--key "${cfg.cosign.key}"''} \
+          ${lib.escapeShellArgs cfg.cosign.extraArgs} \
+          "${registry.name}/${registry.repo}@$digest"
+      ''}
     '') (lib.attrValues cfg.registries)}
   '';
 }
