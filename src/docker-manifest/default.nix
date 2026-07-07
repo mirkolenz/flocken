@@ -20,8 +20,8 @@ let
       ];
     }).config;
 
-  podmanExe = lib.getExe' podman "podman";
-  craneExe = lib.getExe' crane "crane";
+  podmanExe = lib.getExe podman;
+  craneExe = lib.getExe crane;
 in
 
 assert lib.assertMsg (cfg.parsedTags != [ ]) "At least one `tag` must be set";
@@ -114,12 +114,15 @@ writeShellApplication {
       ${podmanExe} manifest push \
         --all \
         --format ${cfg.format} \
+        --digestfile "$TMPDIR/digest" \
         "${cfg.manifestName}" \
         "docker://${registry.name}/${registry.repo}:${lib.head cfg.parsedTags}"
 
+      digest="$(< "$TMPDIR/digest")"
+
       ${lib.concatMapStringsSep "\n" (tag: ''
         ${craneExe} tag \
-          "${registry.name}/${registry.repo}:${lib.head cfg.parsedTags}" \
+          "${registry.name}/${registry.repo}@$digest" \
           "${tag}"
       '') (lib.tail cfg.parsedTags)}
     '') (lib.attrValues cfg.registries)}
