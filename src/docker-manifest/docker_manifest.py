@@ -54,6 +54,13 @@ class GitHub(TypedDict):
     repo: str
 
 
+class GitLab(TypedDict):
+    """The settings of the GitLab integration."""
+
+    enable: bool
+    repo: str
+
+
 class Cosign(TypedDict):
     """The settings for signing the index."""
 
@@ -75,6 +82,7 @@ class Config(TypedDict):
     registries: dict[str, Registry]
     annotations: dict[str, Json]
     github: GitHub
+    gitlab: GitLab
     format: Literal["oci", "v2s2"]
     compression: Literal["gzip", "zstd"] | None
     cosign: Cosign
@@ -226,8 +234,10 @@ def forge_annotations(
 ) -> dict[str, Json]:
     """Derive the OCI annotations shared by all forges from the server and repository path.
 
-    >>> forge_annotations("https://github.com", "mirkolenz/flocken")["vendor"]
-    'mirkolenz'
+    The title defaults to the name of the repository.
+
+    >>> forge_annotations("https://gitlab.com", "group/sub/project")["title"]
+    'project'
     """
     namespace, _, name = repo.rpartition("/")
 
@@ -267,6 +277,29 @@ def github_context(github: GitHub) -> Context:
     )
 
 
+def gitlab_context(gitlab: GitLab) -> Context:
+    """Read the context of a GitLab CI/CD job from its predefined variables."""
+    if not gitlab["repo"]:
+        sys.exit("`gitlab.repo` must be set when `gitlab.enable` is true")
+
+    env = os.environ
+
+    return Context(
+        # Only set in branch pipelines, not in tag or merge request pipelines.
+        branch=env.get("CI_COMMIT_BRANCH", ""),
+        default_branch=env.get("CI_DEFAULT_BRANCH", ""),
+        annotations=forge_annotations(
+            env.get("CI_SERVER_URL", "https://gitlab.com"),
+            gitlab["repo"],
+            env.get("CI_PROJECT_TITLE"),
+        )
+        | {
+            "description": env.get("CI_PROJECT_DESCRIPTION"),
+            "revision": env.get("CI_COMMIT_SHA"),
+        },
+    )
+
+
 def git(*args: str) -> str | None:
     """Query the git repository in the working directory, returning None if that fails."""
     try:
@@ -291,7 +324,17 @@ def local_context() -> Context:
 def describe(config: Config) -> tuple[list[str], dict[str, str]]:
     """Derive the tags and annotations, using the CI environment if an integration is enabled."""
     github = config["github"]
-    context = github_context(github) if github["enable"] else local_context()
+    gitlab = config["gitlab"]
+
+    if github["enable"] and gitlab["enable"]:
+        sys.exit("Only one of `github.enable` and `gitlab.enable` can be set")
+
+    if github["enable"]:
+        context = github_context(github)
+    elif gitlab["enable"]:
+        context = gitlab_context(gitlab)
+    else:
+        context = local_context()
 
     version = config["version"].removeprefix("v")
     branch = context.branch if config["branch"] is None else config["branch"]
@@ -419,7 +462,7 @@ def main(config: Config) -> None:
 
     tags, annotations = describe(config)
     cosign = config["cosign"]
-    # Repository names must be lowercase, unlike the names of GitHub repositories.
+    # Repository names must be lowercase, unlike the paths of GitHub and GitLab projects.
     repos = [
         f"{registry['name']}/{registry['repo'].lower()}" for registry in registries
     ]

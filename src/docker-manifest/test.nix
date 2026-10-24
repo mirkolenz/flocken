@@ -67,12 +67,31 @@ let
       ];
     };
   };
+  # Relies on the defaults, which the predefined variables of GitLab CI/CD fill.
+  docker-manifest-gitlab = mkDockerManifest {
+    images = [ dockerTools.examples.nginx ];
+    version = "2.0.0";
+    gitlab.enable = true;
+    registries."$CI_REGISTRY".tls = "disabled";
+  };
   githubEnv = {
     GITHUB_EVENT_PATH = event;
     GITHUB_REF_NAME = "main";
     GITHUB_REF_TYPE = "branch";
     GITHUB_SHA = "0123456789abcdef";
     EXTRA_TAG = "custom";
+  };
+  gitlabEnv = {
+    CI_REGISTRY = mirror;
+    CI_PROJECT_PATH = "Group/Flocken";
+    CI_PROJECT_TITLE = "Flocken";
+    CI_PROJECT_DESCRIPTION = "Nix flake utilities";
+    CI_REGISTRY_USER = "user";
+    CI_REGISTRY_PASSWORD = "secret";
+    CI_SERVER_URL = "https://gitlab.example.com";
+    CI_COMMIT_BRANCH = "trunk";
+    CI_DEFAULT_BRANCH = "trunk";
+    CI_COMMIT_SHA = "fedcba9876543210";
   };
   # Runs the program with the variables of a CI environment.
   withEnv =
@@ -159,6 +178,19 @@ runCommand "docker-manifest-test"
       .mediaType == "application/vnd.oci.image.manifest.v1+json"
       and .annotations["org.opencontainers.image.title"] == "Flocken Test"
       and all(.layers[]; .mediaType == "application/vnd.oci.image.layer.v1.tar+gzip")
+    '
+
+    ${withEnv gitlabEnv docker-manifest-gitlab}
+
+    # The repository path is lowercased, as registries require.
+    assert_tags ${mirror}/group/flocken trunk latest 2.0.0 2.0 2
+
+    regctl manifest get --format raw-body ${mirror}/group/flocken:trunk | jq -e '
+      .annotations["org.opencontainers.image.title"] == "Flocken"
+      and .annotations["org.opencontainers.image.description"] == "Nix flake utilities"
+      and .annotations["org.opencontainers.image.source"] == "https://gitlab.example.com/Group/Flocken"
+      and .annotations["org.opencontainers.image.vendor"] == "Group"
+      and .annotations["org.opencontainers.image.revision"] == "fedcba9876543210"
     '
 
     touch $out

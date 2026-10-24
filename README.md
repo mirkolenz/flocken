@@ -66,10 +66,33 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 ```
 
+### GitLab CI/CD
+
+With `gitlab.enable`, the index is pushed to the project's container registry and annotated with the project metadata from the predefined variables of GitLab CI/CD.
+GitLab does not expose the license or homepage of a project without its API, so set these annotations explicitly if needed.
+
+```yaml
+release:
+  image: nixos/nix
+  script:
+    - nix run .#docker-manifest
+  variables:
+    VERSION: "1.0.0"
+```
+
 ### Signing with cosign
 
 Set `cosign.enable = true` to sign the index with [cosign](https://github.com/sigstore/cosign).
 Keyless signing in GitHub Actions additionally requires the `id-token: write` permission.
+In GitLab CI/CD, it requires an ID token with the `sigstore` audience, which is only accepted by the public Sigstore instance for GitLab.com:
+
+```yaml
+release:
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
+```
+
 The index is signed in the first registry and copied with its signatures to the others.
 Signatures can be verified as follows:
 
@@ -79,3 +102,5 @@ cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   REGISTRY/REPO:TAG
 ```
+
+For GitLab, the identity is `https://gitlab.com/GROUP/PROJECT//.gitlab-ci.yml@refs/heads/main` and the issuer is `https://gitlab.com`.

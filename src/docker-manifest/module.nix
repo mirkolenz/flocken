@@ -56,7 +56,7 @@ in
     branch = mkOption {
       type = types.nullOr types.str;
       default = null;
-      defaultText = "`$GITHUB_REF_NAME` in branch workflows if the GitHub integration is enabled, else empty";
+      defaultText = "`$GITHUB_REF_NAME` or `$CI_COMMIT_BRANCH` in branch pipelines if the GitHub or GitLab integration is enabled, else the checked out git branch";
       description = ''
         Name of the git branch (e.g., `main`).
       '';
@@ -64,7 +64,7 @@ in
     defaultBranch = mkOption {
       type = types.nullOr types.str;
       default = null;
-      defaultText = "the repository's default branch if the GitHub integration is enabled, else `main`";
+      defaultText = "the repository's default branch if the GitHub or GitLab integration is enabled, else `main`";
       description = ''
         Name of the git branch that is used as default for the `latest` tag.
       '';
@@ -136,7 +136,8 @@ in
       default = { };
       description = ''
         Annotations for the manifest, nested attribute sets are flattened to dotted keys.
-        Most `org.opencontainers.image` annotations are set automatically if the GitHub integration is enabled.
+        Most `org.opencontainers.image` annotations are set automatically if the GitHub or GitLab integration is enabled.
+        The `created` and `revision` annotations are read from the git repository in the working directory if there is one.
       '';
     };
     github = mkOption {
@@ -184,6 +185,49 @@ in
       };
       default = { };
       description = "GitHub integration configuration";
+    };
+    gitlab = mkOption {
+      type = types.submodule {
+        options = {
+          enable = (mkEnableOption "GitLab integration") // {
+            description = ''
+              Whether the GitLab integration is enabled.
+              If set to `true`, the project metadata is read from the predefined variables of GitLab CI/CD at runtime.
+            '';
+          };
+          registry = mkOption {
+            type = types.str;
+            default = "$CI_REGISTRY";
+            description = "Name of the GitLab container registry.";
+          };
+          repo = mkOption {
+            type = types.str;
+            default = "$CI_PROJECT_PATH";
+            description = ''
+              Full path of the GitLab project (e.g., `mirkolenz/flocken`).
+              Used as default value for `registries."$CI_REGISTRY".repo`.
+            '';
+          };
+          username = mkOption {
+            type = types.str;
+            default = "$CI_REGISTRY_USER";
+            description = ''
+              Username for the GitLab container registry.
+              Used as default value for `registries."$CI_REGISTRY".username`.
+            '';
+          };
+          password = mkOption {
+            type = types.str;
+            default = "$CI_REGISTRY_PASSWORD";
+            description = ''
+              Password for the GitLab container registry.
+              Used as default value for `registries."$CI_REGISTRY".password`.
+            '';
+          };
+        };
+      };
+      default = { };
+      description = "GitLab integration configuration";
     };
     format = mkOption {
       type = types.enum [
@@ -234,6 +278,11 @@ in
       );
       branch = lib.mkIf (config.github.branch != null) (lib.mkDefault config.github.branch);
     }
+    (lib.mkIf config.gitlab.enable {
+      registries.${config.gitlab.registry} = lib.mapAttrs (_: lib.mkDefault) {
+        inherit (config.gitlab) repo username password;
+      };
+    })
     (lib.mkIf config.github.enable {
       registries.${config.github.registry} = lib.mapAttrs (_: lib.mkDefault) {
         repo = config.github.repo;
