@@ -1,4 +1,10 @@
-{ self, ... }:
+{ self, lib, ... }:
+let
+  images = with self.packages; [
+    x86_64-linux.nginx
+    aarch64-linux.nginxStream
+  ];
+in
 {
   perSystem =
     { pkgs, config, ... }:
@@ -6,28 +12,28 @@
       packages = {
         inherit (pkgs.dockerTools.examples) nginx nginxStream;
       };
-      checks = {
-        docker-manifest = config.legacyPackages.mkDockerManifest {
-          branch = "main";
-          imageFiles = with self.packages; [ x86_64-linux.nginx ];
-          imageStreams = with self.packages; [ aarch64-linux.nginxStream ];
-          registries."docker-manifest-dummy.mirkolenz.com" = {
-            username = "test";
-            password = "test";
-            repo = "test";
+      checks =
+        lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          docker-manifest-test = pkgs.callPackage ../src/docker-manifest/test.nix {
+            inherit (config.legacyPackages) mkDockerManifest;
+          };
+        }
+        // {
+          docker-manifest = config.legacyPackages.mkDockerManifest {
+            inherit images;
+            registries."docker-manifest-dummy.mirkolenz.com" = {
+              username = "test";
+              password = "test";
+              repo = "test";
+            };
+          };
+          docker-manifest-github = config.legacyPackages.mkDockerManifest {
+            inherit images;
+            github = {
+              enable = true;
+              repo = "mirkolenz/flocken";
+            };
           };
         };
-        docker-manifest-github = config.legacyPackages.mkDockerManifest {
-          github = {
-            enable = true;
-            repo = "mirkolenz/flocken";
-            actor = "mirkolenz";
-          };
-          branch = "main";
-          version = "1.0.0";
-          imageFiles = with self.packages; [ x86_64-linux.nginx ];
-          imageStreams = with self.packages; [ aarch64-linux.nginxStream ];
-        };
-      };
     };
 }

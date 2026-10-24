@@ -26,29 +26,21 @@ See the documentation for more details.
 
 ## [`flocken.legacyPackages.${system}.mkDockerManifest`](https://mirkolenz.github.io/flocken/docker-manifest.html)
 
-Create and push a Docker manifest to a registry.
-This is particularly useful for multi-arch images.
-Some arguments (e.g., `version`) differ between invocations and thus need to be provided in a dynamic fashion.
-We recommend to use environment variables for this purpose.
-For instance, when running in a GitHub action, you only have to provide a value for `VERSION` and `GITHUB_TOKEN` and then can use the following snippet:
+Create a multi-arch image index from Nix-built images and push it to one or more registries.
+The `images` can be archives (e.g., `dockerTools.buildLayeredImage`) or streams (e.g., `dockerTools.streamLayeredImage`).
+All tags and registries share the same digest, which stays the same when a commit with reproducible images is published again.
+String options may reference environment variables as `$VAR` or `\${VAR}` (escaped from Nix interpolation), which are expanded at runtime (`$$` for a literal `$`).
+Use them for secrets (e.g., `"$GITHUB_TOKEN"`), as literal values end up in the Nix store.
 
 ```nix
 docker-manifest = mkDockerManifest {
-  github = {
-    enable = true;
-    token = "$GITHUB_TOKEN";
-  };
-  version = builtins.getEnv "VERSION";
-  imageStreams = with self.packages; [x86_64-linux.docker aarch64-linux.docker];
-}
+  github.enable = true;
+  images = with self.packages; [ x86_64-linux.docker aarch64-linux.docker ];
+};
 ```
 
-> [!warning]
-> Reading environment variables requires the `--impure` flag (e.g., `nix run --impure .#docker-manifest`).
-> Do not use `builtins.getEnv` to read secrets, as this would expose them in the Nix store and could lead to uploading them to binary caches.
-> For tokens/password, pass the name of the environment variable instead.
-
-Here is a complete example for a GitHub action that is able to build an image for multiple architectures:
+With `github.enable`, the index is pushed to `ghcr.io` and annotated with the repository metadata from the payload of the event that triggered the workflow.
+Events without a payload, such as `schedule`, lack the description, homepage, and license.
 
 ```yaml
 on:
@@ -58,19 +50,17 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
-      - uses: DeterminateSystems/nix-installer-action@v6
+      - uses: DeterminateSystems/nix-installer-action@v23
         with:
-          extra-conf: |
-            extra-platforms = aarch64-linux
-      - uses: DeterminateSystems/magic-nix-cache-action@v2
-      - run: nix run --impure .#docker-manifest
+          extra-conf: extra-platforms = aarch64-linux
+      - run: nix run .#docker-manifest
         env:
           VERSION: "1.0.0"
           GITHUB_TOKEN: ${{ github.token }}
@@ -78,20 +68,10 @@ jobs:
 
 ### Signing with cosign
 
-Set `cosign.enable = true` to sign the pushed manifest with [cosign](https://github.com/sigstore/cosign).
-For keyless signing in GitHub Actions, two things are not obvious:
-
-1. The workflow job needs `id-token: write` in addition to `packages: write`, otherwise cosign cannot obtain an OIDC token and the run fails by design.
-2. cosign reuses the credentials that crane already wrote to the Docker config, so no extra login step is needed.
-
-```yaml
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-```
-
-Signatures produced with keyless signing can be verified as follows:
+Set `cosign.enable = true` to sign the index with [cosign](https://github.com/sigstore/cosign).
+Keyless signing in GitHub Actions additionally requires the `id-token: write` permission.
+The index is signed in the first registry and copied with its signatures to the others.
+Signatures can be verified as follows:
 
 ```bash
 cosign verify \

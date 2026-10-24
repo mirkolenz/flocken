@@ -1,8 +1,4 @@
-{
-  inputs,
-  self,
-  ...
-}:
+{ inputs, ... }:
 let
   lib' = import ../lib inputs.nixpkgs.lib;
 in
@@ -17,12 +13,15 @@ in
     };
   };
   perSystem =
-    { pkgs, ... }:
+    { pkgs, config, ... }:
     {
       formatter = pkgs.nixfmt-rfc-style;
+      packages = {
+        docker-manifest = pkgs.callPackage ../src/docker-manifest/package.nix { };
+      };
       legacyPackages = {
         mkDockerManifest = pkgs.callPackage ../src/docker-manifest {
-          lib' = self.lib;
+          inherit (config.packages) docker-manifest;
         };
       };
     };

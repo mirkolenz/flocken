@@ -1,12 +1,10 @@
 {
   config,
   lib,
-  lib',
   ...
 }:
 let
   inherit (lib) types mkOption mkEnableOption;
-  isPreRelease = x: lib.hasInfix "-" x;
   mkDisableOption =
     name:
     (mkEnableOption name)
@@ -14,65 +12,59 @@ let
       default = true;
       example = false;
     };
-  githubData = lib.optionalAttrs (config.github.enable) (
-    lib.importJSON (builtins.fetchurl "${config.github.apiEndpoint}/repos/${config.github.repo}")
-  );
-  illegalAnnotationChars = [
-    "\""
-    "'"
-    ","
-  ];
-  replacementAnnotationChars = map (x: "") illegalAnnotationChars;
-  escapeAnnotations =
-    name: value: lib.replaceStrings illegalAnnotationChars replacementAnnotationChars value;
+  # Kept for compatibility, a definition only causes a warning.
+  mkDeprecatedOption =
+    type:
+    mkOption {
+      type = types.nullOr type;
+      default = null;
+      visible = false;
+    };
+  deprecations = {
+    "github.branch" = "use `branch` instead";
+    "github.enableRegistry" = "use `registries.\"${config.github.registry}\".enable` instead";
+    "github.apiEndpoint" = "the metadata is read from the event payload";
+    "manifestName" = "the manifest name is generated";
+  };
 in
 {
-  imports = [
-    (lib.mkAliasOptionModule [ "images" ] [ "imageFiles" ])
+  imports = map (name: lib.mkRenamedOptionModule [ name ] [ "images" ]) [
+    "imageFiles"
+    "imageStreams"
   ];
   options = {
-    imageFiles = mkOption {
-      type = types.listOf types.package;
+    warnings = mkOption {
+      type = types.listOf types.str;
       default = [ ];
-      description = ''
-        List of Docker images to be added to the manifest.
-        Can for instance be produced using `dockerTools.buildLayeredImage`.
-        _Note:_ This should be a list of identical images for different architectures.
-      '';
+      internal = true;
+      description = "Warnings shown when evaluating the configuration.";
     };
-    imageStreams = mkOption {
-      type = types.listOf types.package;
-      default = [ ];
+    manifestName = mkDeprecatedOption types.str;
+    images = mkOption {
+      type = types.nonEmptyListOf types.package;
+      example = lib.literalExpression "with self.packages; [ x86_64-linux.image aarch64-linux.image ]";
       description = ''
-        List of Docker image streams to be added to the manifest.
-        Can for instance be produced using `dockerTools.streamLayeredImage`.
+        Nix-built images to be added to the manifest, either archives (e.g., `pkgs.dockerTools.buildLayeredImage`) or streams (e.g., `pkgs.dockerTools.streamLayeredImage`).
         _Note:_ This should be a list of identical images for different architectures.
       '';
     };
     version = mkOption {
       type = types.str;
-      default = builtins.getEnv "VERSION";
-      defaultText = "$VERSION || null";
+      default = "$VERSION";
       description = "Semantic version of the image (e.g., `v1.0.0` or `1.0.0`).";
     };
-    parsedVersion = mkOption {
-      type = types.str;
-      readOnly = true;
-      internal = true;
-      description = "The version without the 'v' prefix";
-    };
     branch = mkOption {
-      type = types.str;
-      default = "";
-      defaultText = "github.branch || null";
+      type = types.nullOr types.str;
+      default = null;
+      defaultText = "`$GITHUB_REF_NAME` in branch workflows if the GitHub integration is enabled, else empty";
       description = ''
         Name of the git branch (e.g., `main`).
       '';
     };
     defaultBranch = mkOption {
-      type = types.str;
-      default = "main";
-      defaultText = "if `github.enable` then `$GITHUB_DEFAULT_BRANCH` else `main`";
+      type = types.nullOr types.str;
+      default = null;
+      defaultText = "the repository's default branch if the GitHub integration is enabled, else `main`";
       description = ''
         Name of the git branch that is used as default for the `latest` tag.
       '';
@@ -81,12 +73,6 @@ in
       type = types.listOf types.str;
       default = [ ];
       description = "List of custom/additional tags to be added to the manifest.";
-    };
-    parsedTags = mkOption {
-      type = types.listOf types.str;
-      readOnly = true;
-      internal = true;
-      description = "List of unique tags";
     };
     autoTags = mkOption {
       type = types.submodule {
@@ -125,6 +111,15 @@ in
                 type = types.str;
                 description = "Password for pushing to the registry.";
               };
+              tls = mkOption {
+                type = types.enum [
+                  "enabled"
+                  "insecure"
+                  "disabled"
+                ];
+                default = "enabled";
+                description = "Whether to use TLS, `insecure` skips the certificate verification and `disabled` uses plain HTTP.";
+              };
             };
           }
         )
@@ -133,21 +128,16 @@ in
       description = ''
         Configuration for the Docker registries to be used.
         The key is the name of the registry (e.g., `ghcr.io`).
+        The index is pushed to and signed in the first registry, then copied with its signatures to the others.
       '';
     };
     annotations = mkOption {
       type = types.attrsOf types.anything;
       default = { };
       description = ''
-        Annotations for the manifest.
-        Most `org.opencontainers.image` annotations are set automatically if the GitHub option is enabled.
+        Annotations for the manifest, nested attribute sets are flattened to dotted keys.
+        Most `org.opencontainers.image` annotations are set automatically if the GitHub integration is enabled.
       '';
-    };
-    parsedAnnotations = mkOption {
-      type = types.attrsOf types.str;
-      readOnly = true;
-      internal = true;
-      description = "Flattened annotations";
     };
     github = mkOption {
       type = types.submodule {
@@ -155,7 +145,7 @@ in
           enable = (mkEnableOption "GitHub integration") // {
             description = ''
               Whether the GitHub integration is enabled.
-              If set to `true`, you need to run nix with the `--impure` flag in order to access the GitHub API.
+              If set to `true`, the repository metadata is read from the GitHub Actions environment and event payload at runtime.
             '';
           };
           token = mkOption {
@@ -168,8 +158,7 @@ in
           };
           actor = mkOption {
             type = types.str;
-            default = builtins.getEnv "GITHUB_ACTOR";
-            defaultText = "$GITHUB_ACTOR || null";
+            default = "$GITHUB_ACTOR";
             description = ''
               GitHub actor.
               Used as default value for `registries."ghcr.io".username`.
@@ -177,35 +166,20 @@ in
           };
           repo = mkOption {
             type = types.str;
-            default = builtins.getEnv "GITHUB_REPOSITORY";
-            defaultText = "$GITHUB_REPOSITORY || null";
+            default = "$GITHUB_REPOSITORY";
             description = ''
               Full name of the GitHub repository (e.g., `mirkolenz/flocken`).
               Used as default value for `registries."ghcr.io".repo`.
             '';
-          };
-          branch = mkOption {
-            type = types.str;
-            default = lib.optionalString (builtins.getEnv "GITHUB_REF_TYPE" == "branch") (
-              builtins.getEnv "GITHUB_REF_NAME"
-            );
-            defaultText = "$GITHUB_REF_NAME || null";
-            description = "Name of the git branch.";
           };
           registry = mkOption {
             type = types.str;
             default = "ghcr.io";
             description = "Name of the GitHub registry";
           };
-          enableRegistry = mkDisableOption "the GitHub container registry";
-          apiEndpoint = mkOption {
-            type = types.str;
-            default = "https://api.github.com";
-            description = ''
-              GitHub API endpoint.
-              Can be used for custom GitHub installations.
-            '';
-          };
+          branch = mkDeprecatedOption types.str;
+          enableRegistry = mkDeprecatedOption types.bool;
+          apiEndpoint = mkDeprecatedOption types.str;
         };
       };
       default = { };
@@ -219,10 +193,15 @@ in
       default = "oci";
       description = "The format of the manifest";
     };
-    manifestName = mkOption {
-      type = types.str;
-      default = "flocken";
-      description = "The name of the manifest";
+    compression = mkOption {
+      type = types.nullOr (
+        types.enum [
+          "gzip"
+          "zstd"
+        ]
+      );
+      default = "gzip";
+      description = "Compression of the image layers, `null` keeps them as they are in the images.";
     };
     cosign = mkOption {
       type = types.submodule {
@@ -248,46 +227,19 @@ in
   };
   config = lib.mkMerge [
     {
-      parsedVersion = lib.removePrefix "v" config.version;
-      parsedTags = lib.unique (lib.filter (value: value != "") config.tags);
-      annotations.org.opencontainers.image = {
-        version = config.parsedVersion;
-      };
-      parsedAnnotations = lib.mapAttrs escapeAnnotations (
-        lib.filterAttrs (name: value: value != "") (lib'.getLeaves config.annotations)
+      warnings = lib.mapAttrsToList (name: hint: "flocken: `${name}` is deprecated, ${hint}.") (
+        lib.filterAttrs (
+          name: _: lib.getAttrFromPath (lib.splitString "." name) config != null
+        ) deprecations
       );
-      tags = [
-        (lib.optionalString config.autoTags.branch config.branch)
-        (lib.optionalString (config.autoTags.latest && config.branch == config.defaultBranch) "latest")
-        (lib.optionalString config.autoTags.version config.parsedVersion)
-        (lib.optionalString (
-          config.autoTags.majorMinor && config.parsedVersion != "" && !isPreRelease config.parsedVersion
-        ) (lib.versions.majorMinor config.parsedVersion))
-        (lib.optionalString (
-          config.autoTags.major && config.parsedVersion != "" && !isPreRelease config.parsedVersion
-        ) (lib.versions.major config.parsedVersion))
-      ];
+      branch = lib.mkIf (config.github.branch != null) (lib.mkDefault config.github.branch);
     }
     (lib.mkIf config.github.enable {
-      branch = lib.mkDefault config.github.branch;
-      defaultBranch = lib.mkIf (githubData.default_branch or null != null) (
-        lib.mkDefault githubData.default_branch
-      );
-      registries.${config.github.registry} = {
-        enable = config.github.enableRegistry;
+      registries.${config.github.registry} = lib.mapAttrs (_: lib.mkDefault) {
         repo = config.github.repo;
         username = config.github.actor;
         password = config.github.token;
-      };
-      annotations.org.opencontainers.image = lib.filterAttrs (name: value: value != null) {
-        # https://github.com/opencontainers/image-spec/blob/main/annotations.md
-        authors = githubData.owner.html_url or null;
-        url = githubData.homepage or null;
-        source = githubData.html_url or null;
-        vendor = githubData.owner.login or null;
-        licenses = githubData.license.spdx_id or null;
-        title = githubData.name or null;
-        description = githubData.description or null;
+        enable = lib.defaultTo true config.github.enableRegistry;
       };
     })
   ];
