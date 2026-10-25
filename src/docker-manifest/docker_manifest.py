@@ -1,11 +1,12 @@
 """Create, push, and sign a multi-architecture Docker manifest.
 
-The configuration is read from the JSON file given as the only argument.
+The configuration is read from a JSON file written by `mkDockerManifest`.
 Its strings may reference environment variables as `$VAR` or `${VAR}`,
 which are expanded at runtime to their value or an empty string if unset.
 A literal dollar sign is written as `$$`.
 """
 
+import argparse
 import base64
 import json
 import os
@@ -21,7 +22,17 @@ from datetime import datetime
 from functools import partial
 from pathlib import Path
 from string import Template
-from typing import Final, Literal, TypedDict
+from types import NoneType, UnionType
+from typing import (
+    Final,
+    Literal,
+    TypedDict,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+    is_typeddict,
+)
 
 type Json = str | int | float | bool | None | list[Json] | dict[str, Json]
 
@@ -51,14 +62,20 @@ class GitHub(TypedDict):
     """The settings of the GitHub integration."""
 
     enable: bool
+    token: str
+    actor: str
     repo: str
+    registry: str
 
 
 class GitLab(TypedDict):
     """The settings of the GitLab integration."""
 
     enable: bool
+    registry: str
     repo: str
+    username: str
+    password: str
 
 
 class Cosign(TypedDict):
@@ -86,6 +103,14 @@ class Config(TypedDict):
     format: Literal["oci", "v2s2"]
     compression: Literal["gzip", "zstd"] | None
     cosign: Cosign
+
+
+@dataclass(slots=True)
+class Arguments:
+    """The command line arguments, typed for argparse to fill in."""
+
+    config: Path | None = None
+    schema: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,12 +176,112 @@ def expand(value: Json) -> Json:
             return value
 
 
+def schema(hint: object) -> Json:
+    """Describe a type hint in the format that the Nix options are exported to.
+
+    >>> schema(Cosign)
+    {'object': {'enable': 'bool', 'extraArgs': {'list': 'str'}, 'key': {'nullable': 'str'}, 'recursive': 'bool'}}
+    """
+    origin = get_origin(hint)
+    args = get_args(hint)
+
+    if hint is Json:
+        return "any"
+
+    if hint is str or hint is bool:
+        return hint.__name__
+
+    if is_typeddict(hint):
+        return {
+            "object": {
+                key: schema(value)
+                for key, value in sorted(get_type_hints(hint).items())
+            }
+        }
+
+    if origin is Literal:
+        return {"enum": sorted(args)}
+
+    if origin in (Union, UnionType) and NoneType in args:
+        (inner,) = (arg for arg in args if arg is not NoneType)
+        return {"nullable": schema(inner)}
+
+    if origin is list:
+        return {"list": schema(args[0])}
+
+    if origin is dict:
+        return {"dict": schema(args[1])}
+
+    raise TypeError(f"The type hint {hint} has no schema")
+
+
+def validate(value: Json, expected: Json, path: str = "") -> Iterator[str]:
+    """Describe where a value differs from a schema, objects must have exactly the declared keys.
+
+    >>> list(validate({"enable": True, "recursive": "yes", "key": None, "extra": 1}, schema(Cosign)))
+    ['extra: unknown key', 'extraArgs: missing key', 'recursive: expected bool, got str']
+    """
+    prefix = f"{path}: " if path else ""
+
+    match expected:
+        case "any":
+            return
+        case "str" | "bool":
+            if type(value).__name__ != expected:
+                yield f"{prefix}expected {expected}, got {type(value).__name__}"
+
+            return
+        case dict():
+            [(kind, inner)] = expected.items()
+        case _:
+            raise TypeError(f"Invalid schema {expected!r}")
+
+    container = {"list": list, "dict": dict, "object": dict}.get(kind)
+
+    if kind == "enum" and isinstance(inner, list):
+        if value not in inner:
+            yield f"{prefix}expected one of {', '.join(map(repr, inner))}, got {value!r}"
+
+    elif kind == "nullable":
+        if value is not None:
+            yield from validate(value, inner, path)
+
+    elif container is not None and not isinstance(value, container):
+        yield f"{prefix}expected {'an object' if container is dict else 'a list'}, got {type(value).__name__}"
+
+    elif kind == "list" and isinstance(value, list):
+        for position, item in enumerate(value):
+            yield from validate(item, inner, f"{path}[{position}]")
+
+    elif kind == "dict" and isinstance(value, dict):
+        for key, item in value.items():
+            yield from validate(item, inner, f"{path}.{key}" if path else key)
+
+    elif kind == "object" and isinstance(value, dict) and isinstance(inner, dict):
+        for key in sorted(inner.keys() | value.keys()):
+            child = f"{path}.{key}" if path else key
+
+            if key not in inner:
+                yield f"{child}: unknown key"
+            elif key not in value:
+                yield f"{child}: missing key"
+            else:
+                yield from validate(value[key], inner[key], child)
+
+
 def load(path: Path) -> Config:
-    """Parse the config file and expand environment variables in all values."""
-    return json.loads(
+    """Parse and validate the config file and expand environment variables in all values."""
+    config = json.loads(
         path.read_text(),
         object_hook=lambda obj: {key: expand(value) for key, value in obj.items()},
     )
+
+    if errors := list(validate(config, schema(Config))):
+        sys.exit(
+            "The config does not match the types of the script:\n" + "\n".join(errors)
+        )
+
+    return config
 
 
 def flatten(value: Json, prefix: str = "") -> Iterator[tuple[str, str]]:
@@ -438,7 +563,7 @@ def build_index(config: Config, annotations: Mapping[str, str], tmp: Path) -> st
     return index
 
 
-def main(config: Config) -> None:
+def publish(config: Config) -> None:
     """Create, push, and sign the image index described by the config."""
     registries = [
         registry for registry in config["registries"].values() if registry["enable"]
@@ -521,14 +646,38 @@ def main(config: Config) -> None:
                 )
 
 
+def main() -> None:
+    """Parse the command line, then publish the config or print the schema."""
+    parser = argparse.ArgumentParser(
+        prog="docker-manifest",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "config", type=Path, nargs="?", help="JSON file written by `mkDockerManifest`"
+    )
+    parser.add_argument(
+        "--schema",
+        action="store_true",
+        help="print the schema of the config that the types of the Nix options must match",
+    )
+    args = parser.parse_args(namespace=Arguments())
+
+    if args.schema:
+        print(json.dumps(schema(Config), indent=2, sort_keys=True))
+
+        return
+
+    if args.config is None:
+        parser.error("the config is required")
+
+    try:
+        publish(load(args.config))
+    except subprocess.CalledProcessError as error:
+        sys.exit(
+            f"Command failed with exit code {error.returncode}: {shlex.join(map(str, error.cmd))}"
+        )
+
+
 if __name__ == "__main__":
-    match sys.argv:
-        case [_, path]:
-            try:
-                main(load(Path(path)))
-            except subprocess.CalledProcessError as error:
-                sys.exit(
-                    f"Command failed with exit code {error.returncode}: {shlex.join(map(str, error.cmd))}"
-                )
-        case _:
-            sys.exit("Usage: docker-manifest CONFIG")
+    main()

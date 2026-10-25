@@ -19,6 +19,9 @@ in
           };
         }
         // {
+          docker-manifest-schema = pkgs.callPackage ../src/docker-manifest/schema.nix {
+            inherit (config.packages) docker-manifest;
+          };
           docker-manifest = config.legacyPackages.mkDockerManifest {
             inherit images;
             registries."docker-manifest-dummy.mirkolenz.com" = {
