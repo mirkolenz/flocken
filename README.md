@@ -19,6 +19,8 @@ The project supports semantic versioning, so we advise to pin the major version 
 }
 ```
 
+The builders of `flocken.legacyPackages.${system}` are also available through `flocken.overlays.default`, which builds them from your nixpkgs and makes them available to `callPackage`.
+
 ## [`flocken.lib`](https://mirkolenz.github.io/flocken/lib.html)
 
 A collection of utility functions for nix flakes.

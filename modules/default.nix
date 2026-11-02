@@ -3,7 +3,9 @@ let
   lib' = import ../lib inputs.nixpkgs.lib;
 in
 {
-  imports = lib'.getModules ./.;
+  imports = lib'.getModules ./. ++ [
+    inputs.flake-parts.flakeModules.easyOverlay
+  ];
   flake = {
     lib = lib';
     overlays = {
@@ -19,6 +21,8 @@ in
       packages = {
         docker-manifest = pkgs.callPackage ../src/docker-manifest/package.nix { };
       };
+      # the builders of legacyPackages, built from the nixpkgs of the consumer
+      overlayAttrs = config.legacyPackages;
       legacyPackages = {
         mkDarwinApp = pkgs.callPackage ../src/darwin-app.nix { };
         mkGitHubBinary = pkgs.callPackage ../src/github-binary.nix { };
