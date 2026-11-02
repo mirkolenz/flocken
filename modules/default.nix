@@ -20,6 +20,8 @@ in
         docker-manifest = pkgs.callPackage ../src/docker-manifest/package.nix { };
       };
       legacyPackages = {
+        mkDarwinApp = pkgs.callPackage ../src/darwin-app.nix { };
+        mkGitHubBinary = pkgs.callPackage ../src/github-binary.nix { };
         mkDockerManifest = pkgs.callPackage ../src/docker-manifest {
           inherit (config.packages) docker-manifest;
         };

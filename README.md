@@ -24,6 +24,30 @@ The project supports semantic versioning, so we advise to pin the major version 
 A collection of utility functions for nix flakes.
 See the documentation for more details.
 
+## `flocken.legacyPackages.${system}.mkGitHubBinary`
+
+Install binaries from the release assets of a GitHub repository.
+The release is pinned in a JSON file that the update script (`passthru.updateScript`) refreshes.
+`assets` maps each system to one or more asset names, or is a function of the version returning such a mapping.
+
+```nix
+mkGitHubBinary {
+  owner = "astral-sh";
+  repo = "uv";
+  file = ./release.json;
+  binaries = [ "uv" "uvx" ];
+  assets = {
+    x86_64-linux = "uv-x86_64-unknown-linux-gnu.tar.gz";
+    aarch64-darwin = "uv-aarch64-apple-darwin.tar.gz";
+  };
+}
+```
+
+## `flocken.legacyPackages.${system}.mkDarwinApp`
+
+Install a macOS app bundle to `$out/Applications`, optionally wrapping an `executable` inside it as `$out/bin/${pname}`.
+Combine it with `mkGitHubBinary.override { constructDrv = mkDarwinApp; }` to install apps from GitHub releases.
+
 ## [`flocken.legacyPackages.${system}.mkDockerManifest`](https://mirkolenz.github.io/flocken/docker-manifest.html)
 
 Create a multi-arch image index from Nix-built images and push it to one or more registries.
