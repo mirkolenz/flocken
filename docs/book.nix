@@ -4,9 +4,21 @@
   mdbook,
   nixdoc,
   writeShellApplication,
+  writeText,
   python3,
   optionsMarkdown,
 }:
+let
+  libPages = map (lib.removeSuffix ".nix") (lib.remove "default.nix" (lib.attrNames (lib.readDir ../lib)));
+  summary = writeText "SUMMARY.md" ''
+    # Summary
+
+    [Introduction](README.md)
+
+    - [lib](lib.md)
+    ${lib.concatMapStrings (name: "  - [${name}](lib/${name}.md)\n") libPages}- [mkDockerManifest](docker-manifest.md)
+  '';
+in
 stdenvNoCC.mkDerivation (finalAttrs: {
   name = "book";
   nativeBuildInputs = [
@@ -24,12 +36,18 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preBuild
 
     cp ${optionsMarkdown}/*.md src
+    cp ${summary} src/SUMMARY.md
     ln -s ${../README.md} src/README.md
-    nixdoc \
-      --category "" \
-      --description "" \
-      --prefix "" \
-      --file ${../lib/default.nix} > src/lib.md
+    mkdir src/lib
+
+    for name in ${toString libPages}; do
+      {
+        echo "# $name"
+        echo
+        nixdoc --category "" --description "" --prefix "" --file "${../lib}/$name.nix"
+      } > "src/lib/$name.md"
+    done
+
     mdbook build
 
     runHook postBuild
