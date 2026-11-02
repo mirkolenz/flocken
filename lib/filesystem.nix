@@ -64,7 +64,7 @@ lib: rec {
     => [ ]
     ```
   */
-  optionalPath = path: if lib.pathExists path then [ path ] else [ ];
+  optionalPath = path: lib.optional (lib.pathExists path) path;
 
   /**
     Compose the overlays of a directory in the order of their names, found like `getModules` does.
