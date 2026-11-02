@@ -26,6 +26,23 @@ The builders of `flocken.legacyPackages.${system}` are also available through `f
 A collection of utility functions for nix flakes.
 See the documentation for more details.
 
+## `flocken.flakeModules`
+
+Modules for [flake-parts](https://flake.parts).
+
+- `evalChecks` adds a check `eval-<class>-<name>` for every configuration in `nixosConfigurations`, `darwinConfigurations`, and `homeConfigurations`.
+  It forces the full evaluation of the configuration without building it, which `nix flake check` alone does not.
+- `lib` declares `flake.lib` as a lazy attribute set, so several modules can add helpers to it.
+
+```nix
+flake-parts.lib.mkFlake { inherit inputs; } {
+  imports = [
+    flocken.flakeModules.evalChecks
+    flocken.flakeModules.lib
+  ];
+}
+```
+
 ## `flocken.legacyPackages.${system}.mkGitHubBinary`
 
 Install binaries from the release assets of a GitHub repository.

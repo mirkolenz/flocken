@@ -5,9 +5,14 @@ in
 {
   imports = lib'.getModules ./. ++ [
     inputs.flake-parts.flakeModules.easyOverlay
+    inputs.flake-parts.flakeModules.flakeModules
   ];
   flake = {
     lib = lib';
+    flakeModules = {
+      evalChecks = ../src/flake-modules/eval-checks.nix;
+      lib = ../src/flake-modules/lib.nix;
+    };
     overlays = {
       lib = final: prev: {
         flocken = import ../lib prev;
