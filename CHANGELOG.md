@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.6.0](https://github.com/mirkolenz/flocken/compare/v2.5.3...v2.6.0) (2026-11-02)
+
+### Features
+
+* add evalChecks and lib flake modules ([af3f394](https://github.com/mirkolenz/flocken/commit/af3f394955360893d1f077f28f375cca51691812))
+* add mkGitHubBinary and mkDarwinApp builders ([693a0e5](https://github.com/mirkolenz/flocken/commit/693a0e5b2e3382609b0902c8b0c1230698020a4d))
+* **docker-manifest:** add gitlab integration ([9a12c53](https://github.com/mirkolenz/flocken/commit/9a12c53ff506faf1c5bf32ee926e3d84293b684f))
+* **docker-manifest:** add signing with cosign ([4f9b094](https://github.com/mirkolenz/flocken/commit/4f9b09431769b2cda3eb469686ba7225597b529b))
+* **docker-manifest:** rewrite with regctl in python ([2f022ff](https://github.com/mirkolenz/flocken/commit/2f022ff5eb3898fdab1b3f50617c20c3fcac3a9f))
+* **docker-manifest:** validate config against script schema ([93d638c](https://github.com/mirkolenz/flocken/commit/93d638cb621cc9bb8a053bcc1a192f8cc6f1bfef))
+* expose builders through default overlay ([951bc1c](https://github.com/mirkolenz/flocken/commit/951bc1c31835bc8383db4b0114aef4129212f093))
+* **lib:** add helpers for overlays, home-manager, update scripts, and nix daemon ([62f9552](https://github.com/mirkolenz/flocken/commit/62f9552b181a76a6d2d96e20a26cf22a4df0848f))
+
+### Bug Fixes
+
+* **docker-manifest:** use digest for better tagging consistency ([ffce2b8](https://github.com/mirkolenz/flocken/commit/ffce2b891b7f5f1f05cde83389025f46f2eb18b8))
+* **lib/getModules:** rewrite using lib.pipe ([a945548](https://github.com/mirkolenz/flocken/commit/a9455483991cf6f4ec208cced501e71b7376bc99))
+* **lib:** replace builtins with lib ([1dea8eb](https://github.com/mirkolenz/flocken/commit/1dea8eb866ac2ea2e7fd65ceca90c464ab13b50a))
+
 ## [2.5.3](https://github.com/mirkolenz/flocken/compare/v2.5.2...v2.5.3) (2025-12-28)
 
 ### Bug Fixes
