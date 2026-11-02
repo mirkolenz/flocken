@@ -32,6 +32,8 @@ Modules for [flake-parts](https://flake.parts).
 
 - `evalChecks` adds a check `eval-<class>-<name>` for every configuration in `nixosConfigurations`, `darwinConfigurations`, and `homeConfigurations`.
   It forces the full evaluation of the configuration without building it, which `nix flake check` alone does not.
+  Further derivations can be added through `evalTargets.<class>.<name>`, and `evalTargets.<class>.<name>.enable = false` skips one.
+  Setting `evalTargets.<class>.<name>.system` explicitly avoids evaluating the configuration's pkgs to find it.
 - `lib` declares `flake.lib` as a lazy attribute set, so several modules can add helpers to it.
 
 ```nix
