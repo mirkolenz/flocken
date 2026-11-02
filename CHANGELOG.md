@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/mirkolenz/flocken/compare/v2.6.0...v2.6.1) (2026-11-02)
+
+### Bug Fixes
+
+* **eval-checks:** add configurable eval targets ([b6050d3](https://github.com/mirkolenz/flocken/commit/b6050d31435c38873093daaa7731f16fd3bc44d5))
+* **github-binary:** name bare executable sources like upstream fetchers ([02aaa48](https://github.com/mirkolenz/flocken/commit/02aaa481678d34edb0d2d6f5de3e16e76fc15c82))
+
 ## [2.6.0](https://github.com/mirkolenz/flocken/compare/v2.5.3...v2.6.0) (2026-11-02)
 
 ### Features
