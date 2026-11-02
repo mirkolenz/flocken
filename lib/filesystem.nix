@@ -65,4 +65,30 @@ lib: rec {
     ```
   */
   optionalPath = path: if lib.pathExists path then [ path ] else [ ];
+
+  /**
+    Compose the overlays of a directory in the order of their names, found like `getModules` does.
+    Each one holds an overlay `final: prev: { ... }` that sees the preceding ones in its `prev`,
+    so numeric prefixes such as `10-inputs.nix` and `90-hotfixes.nix` control the precedence.
+
+    # Inputs
+
+    `dir`
+    : The directory containing the overlays.
+
+    # Type
+
+    ```
+    importOverlays :: Path -> Overlay
+    ```
+
+    # Examples
+
+    ```nix
+    import nixpkgs {
+      overlays = [ (importOverlays ./overlays) ];
+    }
+    ```
+  */
+  importOverlays = dir: lib.composeManyExtensions (map import (getModules dir));
 }
