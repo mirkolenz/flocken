@@ -13,6 +13,15 @@
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import systems;
-      imports = [ ./modules ];
+      imports = [
+        flake-parts.flakeModules.partitions
+        ./modules
+      ];
+      partitionedAttrs = {
+        checks = "dev";
+        formatter = "dev";
+        packages = "dev";
+      };
+      partitions.dev.module = ./dev;
     };
 }

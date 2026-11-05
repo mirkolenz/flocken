@@ -3,7 +3,7 @@ let
   lib' = import ../lib inputs.nixpkgs.lib;
 in
 {
-  imports = lib'.getModules ./. ++ [
+  imports = [
     inputs.flake-parts.flakeModules.easyOverlay
     inputs.flake-parts.flakeModules.flakeModules
   ];
@@ -22,7 +22,6 @@ in
   perSystem =
     { pkgs, config, ... }:
     {
-      formatter = pkgs.nixfmt-rfc-style;
       packages = {
         docker-manifest = pkgs.callPackage ../src/docker-manifest/package.nix { };
       };
