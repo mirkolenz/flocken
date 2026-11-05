@@ -9,14 +9,19 @@
   optionsMarkdown,
 }:
 let
-  libPages = map (lib.removeSuffix ".nix") (lib.remove "default.nix" (lib.attrNames (lib.readDir ../lib)));
+  # the files that ../lib/default.nix merges
+  libNames = map (file: lib.removeSuffix ".nix" (baseNameOf file)) (
+    (import ../lib/filesystem.nix lib).getModules ../lib
+  );
+  libEntries = lib.concatMapStringsSep "\n" (name: "  - [${name}](lib/${name}.md)") libNames;
   summary = writeText "SUMMARY.md" ''
     # Summary
 
     [Introduction](README.md)
 
     - [lib](lib.md)
-    ${lib.concatMapStrings (name: "  - [${name}](lib/${name}.md)\n") libPages}- [mkDockerManifest](docker-manifest.md)
+    ${libEntries}
+    - [mkDockerManifest](docker-manifest.md)
   '';
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
@@ -40,12 +45,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     ln -s ${../README.md} src/README.md
     mkdir src/lib
 
-    for name in ${toString libPages}; do
-      {
-        echo "# $name"
-        echo
-        nixdoc --category "" --description "" --prefix "" --file "${../lib}/$name.nix"
-      } > "src/lib/$name.md"
+    for name in ${toString libNames}; do
+      nixdoc --category "" --description "$name" --prefix "" --file "${../lib}/$name.nix" > "src/lib/$name.md"
     done
 
     mdbook build
