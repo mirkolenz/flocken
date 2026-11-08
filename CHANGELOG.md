@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.6.2](https://github.com/mirkolenz/flocken/compare/v2.6.1...v2.6.2) (2026-11-08)
+
+### Bug Fixes
+
+* **github-binary:** download assets via api with optional auth ([36c195f](https://github.com/mirkolenz/flocken/commit/36c195fda2ae336a3bb09098054e2c5d8e109e86))
+
 ## [2.6.1](https://github.com/mirkolenz/flocken/compare/v2.6.0...v2.6.1) (2026-11-02)
 
 ### Bug Fixes
