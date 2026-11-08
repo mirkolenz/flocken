@@ -96,8 +96,27 @@ lib.extendMkDerivation {
           # named like the sources of upstream fetchers, so caches can skip pushing them,
           # while archives keep their name for unpackPhase to detect the format
           name = if bareExecutable then "source" else name;
-          url = "https://github.com/${owner}/${repo}/releases/download/${release.tag_name}/${name}";
+          url = "https://api.github.com/repos/${owner}/${repo}/releases/assets/${
+            toString release.assets.${name}.id
+          }";
           hash = release.assets.${name}.digest;
+          curlOptsList = [
+            "--header"
+            "Accept: application/octet-stream"
+          ];
+          # The credentials of private `fetchFromGitHub`, optional since the assets are public.
+          netrcImpureEnvVars = [
+            "NIX_GITHUB_PRIVATE_USERNAME"
+            "NIX_GITHUB_PRIVATE_PASSWORD"
+          ];
+          netrcPhase = ''
+            touch netrc
+
+            if [[ -n "''${NIX_GITHUB_PRIVATE_USERNAME:-}" && -n "''${NIX_GITHUB_PRIVATE_PASSWORD:-}" ]]; then
+              printf 'machine api.github.com\nlogin %s\npassword %s\n' \
+                "$NIX_GITHUB_PRIVATE_USERNAME" "$NIX_GITHUB_PRIVATE_PASSWORD" > netrc
+            fi
+          '';
         }
       ) assetNames;
 
@@ -170,7 +189,7 @@ lib.extendMkDerivation {
                     $sentinelNames[] as $sentinelName |
                     ($sentinelName | split("${sentinel}") | join($version)) as $name |
                     ($assets[$name] // error("Asset not found: \($name)")) |
-                    { key: .name, value: { digest } }
+                    { key: .name, value: { id, digest } }
                   ] | from_entries
                 }
               ' <<<"$response"

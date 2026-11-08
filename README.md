@@ -50,6 +50,8 @@ flake-parts.lib.mkFlake { inherit inputs; } {
 Install binaries from the release assets of a GitHub repository.
 The release is pinned in a JSON file that the update script (`passthru.updateScript`) refreshes.
 `assets` maps each system to one or more asset names, or is a function of the version returning such a mapping.
+Assets are downloaded through the GitHub API, anonymously by default.
+Like private `fetchFromGitHub`, it authenticates when the Nix daemon passes `NIX_GITHUB_PRIVATE_USERNAME` and `NIX_GITHUB_PRIVATE_PASSWORD`, e.g. via the setting `impure-env` of the experimental feature `configurable-impure-env`.
 
 ```nix
 mkGitHubBinary {
