@@ -66,6 +66,7 @@ class GitHub(TypedDict):
     actor: str
     repo: str
     registry: str
+    outputFile: str
 
 
 class GitLab(TypedDict):
@@ -76,6 +77,7 @@ class GitLab(TypedDict):
     repo: str
     username: str
     password: str
+    outputFile: str
 
 
 class Cosign(TypedDict):
@@ -601,6 +603,13 @@ def build_index(
     return index, refs
 
 
+def write_outputs(path: str, outputs: Mapping[str, str]) -> None:
+    """Append the outputs to a file as `KEY=VALUE` lines, unless its path is empty."""
+    if path:
+        with Path(path).open("a") as file:
+            file.writelines(f"{key}={value}\n" for key, value in outputs.items())
+
+
 def publish(config: Config) -> None:
     """Create, push, sign, and attest the image index described by the config."""
     registries = [
@@ -702,6 +711,18 @@ def publish(config: Config) -> None:
         for repo in repos:
             for tag in tags:
                 copy(f"{repo}@{digest}", f"{repo}:{tag}")
+
+        # Step outputs are scoped to their step, while dotenv variables are global to a job.
+        if config["github"]["enable"]:
+            write_outputs(
+                config["github"]["outputFile"], {"name": primary, "digest": digest}
+            )
+
+        if config["gitlab"]["enable"]:
+            write_outputs(
+                config["gitlab"]["outputFile"],
+                {"DOCKER_MANIFEST_NAME": primary, "DOCKER_MANIFEST_DIGEST": digest},
+            )
 
 
 def main() -> None:

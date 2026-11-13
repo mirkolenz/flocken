@@ -201,6 +201,13 @@ in
             default = "ghcr.io";
             description = "Name of the GitHub registry";
           };
+          outputFile = mkOption {
+            type = types.str;
+            default = "$GITHUB_OUTPUT";
+            description = ''
+              File that the `name` and `digest` of the pushed index are appended to as step outputs, skipped if empty.
+            '';
+          };
           branch = mkDeprecatedOption types.str;
           enableRegistry = mkDeprecatedOption types.bool;
           apiEndpoint = mkDeprecatedOption types.str;
@@ -245,6 +252,14 @@ in
             description = ''
               Password for the GitLab container registry.
               Used as default value for `registries."$CI_REGISTRY".password`.
+            '';
+          };
+          outputFile = mkOption {
+            type = types.str;
+            default = "docker-manifest.env";
+            description = ''
+              File that the `DOCKER_MANIFEST_NAME` and `DOCKER_MANIFEST_DIGEST` of the pushed index are appended to, skipped if empty.
+              Its variables are passed to later jobs if it is declared as `artifacts:reports:dotenv`.
             '';
           };
         };

@@ -177,3 +177,39 @@ cosign verify-attestation --type https://cyclonedx.org/bom \
   REGISTRY/REPO@$(regctl image digest --platform linux/amd64 REGISTRY/REPO:TAG) \
   | jq -r .payload | base64 -d | jq .predicate
 ```
+
+The name and digest of the index are passed on to later steps or jobs following the conventions of each platform.
+With `github.enable`, they are the step outputs `name` and `digest`, for example to attest its build provenance:
+
+```yaml
+permissions:
+  packages: write
+  id-token: write
+  attestations: write
+steps:
+  - run: nix run .#docker-manifest
+    id: manifest
+    env:
+      VERSION: "1.0.0"
+      GITHUB_TOKEN: ${{ github.token }}
+  - uses: actions/attest-build-provenance@v4
+    with:
+      subject-name: ${{ steps.manifest.outputs.name }}
+      subject-digest: ${{ steps.manifest.outputs.digest }}
+      push-to-registry: true
+```
+
+With `gitlab.enable`, they are written to `gitlab.outputFile` and become the variables `DOCKER_MANIFEST_NAME` and `DOCKER_MANIFEST_DIGEST` of later jobs:
+
+```yaml
+release:
+  script:
+    - nix run .#docker-manifest
+  artifacts:
+    reports:
+      dotenv: docker-manifest.env
+deploy:
+  needs: [release]
+  script:
+    - echo "$DOCKER_MANIFEST_NAME@$DOCKER_MANIFEST_DIGEST"
+```

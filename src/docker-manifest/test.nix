@@ -89,6 +89,7 @@ let
     GITHUB_REF_NAME = "main";
     GITHUB_REF_TYPE = "branch";
     GITHUB_SHA = "0123456789abcdef";
+    GITHUB_OUTPUT = "/tmp/github-output";
     EXTRA_TAG = "custom";
   };
   gitlabEnv = {
@@ -166,6 +167,8 @@ runCommand "docker-manifest-test"
 
     digest=$(regctl image digest ${primary}/flocken:main)
     platform=$(regctl image digest --platform local ${primary}/flocken:main)
+    grep -qx "digest=$digest" /tmp/github-output
+    grep -qx "name=${primary}/flocken" /tmp/github-output
 
     for repo in ${primary}/flocken ${mirror}/flocken; do
       assert_tags $repo main latest 1.2.3 1.2 1 custom
@@ -196,6 +199,8 @@ runCommand "docker-manifest-test"
 
     # The repository path is lowercased, as registries require.
     assert_tags ${mirror}/group/flocken trunk latest 2.0.0 2.0 2
+    grep -qx "DOCKER_MANIFEST_DIGEST=$(regctl image digest ${mirror}/group/flocken:trunk)" docker-manifest.env
+
     regctl manifest get --format raw-body ${mirror}/group/flocken:trunk | jq -e '
       .annotations["org.opencontainers.image.title"] == "Flocken"
       and .annotations["org.opencontainers.image.description"] == "Nix flake utilities"
