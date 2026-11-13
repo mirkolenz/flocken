@@ -36,6 +36,9 @@ let
       license.spdx_id = "MIT";
     };
   };
+  signingConfig = writers.writeJSON "signing-config.json" {
+    mediaType = "application/vnd.dev.sigstore.signingconfig.v0.2+json";
+  };
   docker-manifest = mkDockerManifest {
     images = with dockerTools.examples; [
       nginx
@@ -61,10 +64,8 @@ let
     cosign = {
       enable = true;
       key = "cosign.key";
-      extraArgs = [
-        "--use-signing-config=false"
-        "--tlog-upload=false"
-      ];
+      # Signing with a local key and without any Sigstore services.
+      extraArgs = [ "--signing-config=${signingConfig}" ];
     };
   };
   # Relies on the defaults, which the predefined variables of GitLab CI/CD fill.
