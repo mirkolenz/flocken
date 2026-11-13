@@ -34,6 +34,7 @@ let
           type = types.package;
           description = ''
             Nix-built image, either an archive (e.g., `pkgs.dockerTools.buildLayeredImage`) or a stream (e.g., `pkgs.dockerTools.streamLayeredImage`).
+            Streams of `pkgs.dockerTools` are run with the Python interpreter of the host, so images of other platforms need no emulation.
           '';
         };
         sbom = mkOption {

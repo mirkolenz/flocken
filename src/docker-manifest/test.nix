@@ -177,7 +177,9 @@ runCommand "docker-manifest-test"
       cosign verify-attestation --key cosign.pub --type cyclonedx --insecure-ignore-tlog --allow-http-registry $repo@$platform > /dev/null
     done
 
-    # The archive and the stream contain the same image, which is deduplicated.
+    # The archive, written by the stream wrapper of nixpkgs, and the stream, run natively
+    # by flocken, contain the same image, which is deduplicated. This guards the native
+    # invocation against changes of the wrapper in nixpkgs.
     regctl manifest get --format raw-body ${primary}/flocken:main | jq -e '
       (.manifests | length == 1)
       and .annotations["org.opencontainers.image.version"] == "1.2.3"

@@ -75,6 +75,7 @@ Combine it with `mkGitHubBinary.override { constructDrv = mkDarwinApp; }` to ins
 
 Create a multi-arch image index from Nix-built images and push it to one or more registries.
 The `images` can be archives (e.g., `dockerTools.buildLayeredImage`) or streams (e.g., `dockerTools.streamLayeredImage`).
+Streams of `dockerTools` are run with the host's Python, so the images of other platforms need no emulation, only their store paths, which a binary cache filled by native builders can provide.
 All tags and registries share the same digest, which stays the same when a commit with reproducible images is published again.
 String options may reference environment variables as `$VAR` or `\${VAR}` (escaped from Nix interpolation), which are expanded at runtime (`$$` for a literal `$`).
 Use them for secrets (e.g., `"$GITHUB_TOKEN"`), as literal values end up in the Nix store.
@@ -101,12 +102,9 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-qemu-action@v4
         with:
-          platforms: arm64
+          persist-credentials: false
       - uses: DeterminateSystems/nix-installer-action@v23
-        with:
-          extra-conf: extra-platforms = aarch64-linux
       - run: nix run .#docker-manifest
         env:
           VERSION: "1.0.0"
