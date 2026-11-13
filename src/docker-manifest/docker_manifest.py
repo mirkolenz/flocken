@@ -87,10 +87,17 @@ class Cosign(TypedDict):
     extraArgs: list[str]
 
 
+class Image(TypedDict):
+    """An image of the manifest and its SBOM."""
+
+    image: str
+    sbom: str | None
+
+
 class Config(TypedDict):
     """The config written by `mkDockerManifest`."""
 
-    images: list[str]
+    images: list[Image]
     version: str
     branch: str | None
     defaultBranch: str | None
@@ -504,6 +511,32 @@ def write_auth(registries: Sequence[Registry], path: Path) -> None:
     path.write_text(json.dumps({"auths": auths}))
 
 
+def predicate_type(sbom: Mapping[str, Json]) -> str:
+    """Detect the in-toto predicate type of an SBOM from its content.
+
+    SPDX 2 uses the unversioned type, which `cosign --type spdxjson` matches.
+
+    >>> predicate_type({"bomFormat": "CycloneDX", "specVersion": "1.6"})
+    'https://cyclonedx.org/bom'
+    >>> predicate_type({"spdxVersion": "SPDX-2.3"})
+    'https://spdx.dev/Document'
+    >>> predicate_type({"@context": "https://spdx.org/rdf/3.0.1/spdx-context.jsonld"})
+    'https://spdx.dev/Document/v3'
+    """
+    if sbom.get("bomFormat") == "CycloneDX":
+        return "https://cyclonedx.org/bom"
+
+    if "spdxVersion" in sbom:
+        return "https://spdx.dev/Document"
+
+    context = sbom.get("@context")
+
+    if isinstance(context, str) and context.startswith("https://spdx.org/rdf/3."):
+        return "https://spdx.dev/Document/v3"
+
+    sys.exit("An SBOM is neither a CycloneDX, an SPDX 2, nor an SPDX 3 JSON document")
+
+
 def import_image(image: Path, ref: str, tmp: Path) -> None:
     """Import an image archive or stream (an executable printing the archive)."""
     archive = image
@@ -526,8 +559,13 @@ def import_image(image: Path, ref: str, tmp: Path) -> None:
         archive.unlink()
 
 
-def build_index(config: Config, annotations: Mapping[str, str], tmp: Path) -> str:
-    """Assemble the index in a local OCI layout and return its reference."""
+def build_index(
+    config: Config, annotations: Mapping[str, str], tmp: Path
+) -> tuple[str, list[str]]:
+    """Assemble the index in a local OCI layout.
+
+    Returns its reference and the references of the images' manifests in their order.
+    """
     compression = config["compression"]
     convert, media_type = FORMATS[config["format"]]
     annotation_args = [
@@ -537,7 +575,7 @@ def build_index(config: Config, annotations: Mapping[str, str], tmp: Path) -> st
     refs = [f"{layout}:{position}" for position in range(len(config["images"]))]
 
     for image, ref in zip(config["images"], refs, strict=True):
-        import_image(Path(image), ref, tmp)
+        import_image(Path(image["image"]), ref, tmp)
         run(
             "regctl",
             "image",
@@ -560,11 +598,11 @@ def build_index(config: Config, annotations: Mapping[str, str], tmp: Path) -> st
         *(f"--ref={ref}" for ref in refs),
     )
 
-    return index
+    return index, refs
 
 
 def publish(config: Config) -> None:
-    """Create, push, and sign the image index described by the config."""
+    """Create, push, sign, and attest the image index described by the config."""
     registries = [
         registry for registry in config["registries"].values() if registry["enable"]
     ]
@@ -601,6 +639,13 @@ def publish(config: Config) -> None:
         "image",
         "copy",
     )
+    primary, *mirrors = repos
+    cosign_args = [
+        "--yes",
+        *(["--key", cosign["key"]] if cosign["key"] else []),
+        *COSIGN_TLS[registries[0]["tls"]],
+        *cosign["extraArgs"],
+    ]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -609,34 +654,43 @@ def publish(config: Config) -> None:
         os.environ["REGCTL_CONFIG"] = str(tmp / "regctl.json")
         write_auth(registries, tmp / "config.json")
         # The index is copied to every tag, so all tags and registries share its digest.
-        index = build_index(config, annotations, tmp)
+        index, manifests = build_index(config, annotations, tmp)
         digest = run("regctl", "image", "digest", index)
         print(run("regctl", "manifest", "get", index))
         print(f"Digest: {digest}")
         print(f"Registries: {' '.join(registry['name'] for registry in registries)}")
         print(f"Tags: {' '.join(tags)}", flush=True)
 
-        # The images are uploaded once per registry, the other tags only reference the digest.
+        # The images are uploaded untagged, so no tag points to an unsigned index.
         for repo in repos:
-            copy(index, f"{repo}:{tags[0]}")
-
-            for tag in tags[1:]:
-                copy(f"{repo}@{digest}", f"{repo}:{tag}")
+            copy(index, f"{repo}@{digest}")
 
         if cosign["enable"]:
-            primary, *mirrors = repos
             run(
                 "cosign",
                 "sign",
-                "--yes",
                 *(["--recursive"] if cosign["recursive"] else []),
-                *(["--key", cosign["key"]] if cosign["key"] else []),
-                *COSIGN_TLS[registries[0]["tls"]],
-                *cosign["extraArgs"],
+                *cosign_args,
                 f"{primary}@{digest}",
             )
 
-            # The mirrors already have the index, so only the signatures are copied.
+            # An SBOM describes one platform, so it is attested to that platform's manifest.
+            for image, manifest in zip(config["images"], manifests, strict=True):
+                if not (sbom := image["sbom"]):
+                    continue
+
+                sbom_type = predicate_type(json.loads(Path(sbom).read_text()))
+                manifest_digest = run("regctl", "image", "digest", manifest)
+                run(
+                    "cosign",
+                    "attest",
+                    f"--type={sbom_type}",
+                    f"--predicate={sbom}",
+                    *cosign_args,
+                    f"{primary}@{manifest_digest}",
+                )
+
+            # The mirrors already have the index, so only the signatures and attestations are copied.
             for mirror in mirrors:
                 copy(
                     "--referrers",
@@ -644,6 +698,10 @@ def publish(config: Config) -> None:
                     f"{primary}@{digest}",
                     f"{mirror}@{digest}",
                 )
+
+        for repo in repos:
+            for tag in tags:
+                copy(f"{repo}@{digest}", f"{repo}:{tag}")
 
 
 def main() -> None:

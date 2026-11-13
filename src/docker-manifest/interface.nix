@@ -20,6 +20,8 @@ lib: rec {
             value
           else if opt.type.name == "attrsOf" then
             lib.mapAttrs (_: toInterface sub) value
+          else if opt.type.name == "listOf" then
+            map (toInterface sub) value
           else
             toInterface sub value;
       }
@@ -31,12 +33,14 @@ lib: rec {
     {
       str = "str";
       bool = "bool";
-      # Packages are serialized as their store paths.
+      # Packages and paths are serialized as their store paths.
       package = "str";
+      path = "str";
       anything = "any";
       enum.enum = lib.sort lib.lessThan type.functor.payload.values;
       nullOr.nullable = toSchema type.nestedTypes.elemType;
       listOf.list = toSchema type.nestedTypes.elemType;
+      coercedTo = toSchema type.nestedTypes.finalType;
       attrsOf.dict = toSchema type.nestedTypes.elemType;
       submodule.object = lib.mapAttrs (_: opt: toSchema opt.type) (
         interfaceOptions (type.getSubOptions [ ])

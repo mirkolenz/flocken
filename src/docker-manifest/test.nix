@@ -13,7 +13,7 @@
   mkDockerManifest,
 }:
 let
-  # The index is pushed to and signed in the primary, then copied to the mirror.
+  # The index is signed in the primary, then its signatures are copied to the mirror.
   primary = "localhost:5000";
   mirror = "localhost:5001";
   mkRegistryConfig =
@@ -39,9 +39,18 @@ let
   signingConfig = writers.writeJSON "signing-config.json" {
     mediaType = "application/vnd.dev.sigstore.signingconfig.v0.2+json";
   };
+  # A minimal document, which only needs to be detected as its format.
+  cyclonedx = writers.writeJSON "sbom.cdx.json" {
+    bomFormat = "CycloneDX";
+    specVersion = "1.6";
+    version = 1;
+  };
   docker-manifest = mkDockerManifest {
     images = with dockerTools.examples; [
-      nginx
+      {
+        image = nginx;
+        sbom = cyclonedx;
+      }
       nginxStream
     ];
     version = "v1.2.3";
@@ -156,11 +165,13 @@ runCommand "docker-manifest-test"
     done
 
     digest=$(regctl image digest ${primary}/flocken:main)
+    platform=$(regctl image digest --platform local ${primary}/flocken:main)
 
     for repo in ${primary}/flocken ${mirror}/flocken; do
       assert_tags $repo main latest 1.2.3 1.2 1 custom
       [[ $(regctl image digest $repo:main) == "$digest" ]]
       cosign verify --key cosign.pub --insecure-ignore-tlog --allow-http-registry $repo@$digest > /dev/null
+      cosign verify-attestation --key cosign.pub --type cyclonedx --insecure-ignore-tlog --allow-http-registry $repo@$platform > /dev/null
     done
 
     # The archive and the stream contain the same image, which is deduplicated.
@@ -185,7 +196,6 @@ runCommand "docker-manifest-test"
 
     # The repository path is lowercased, as registries require.
     assert_tags ${mirror}/group/flocken trunk latest 2.0.0 2.0 2
-
     regctl manifest get --format raw-body ${mirror}/group/flocken:trunk | jq -e '
       .annotations["org.opencontainers.image.title"] == "Flocken"
       and .annotations["org.opencontainers.image.description"] == "Nix flake utilities"

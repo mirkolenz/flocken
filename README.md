@@ -140,7 +140,7 @@ release:
       aud: sigstore
 ```
 
-The index is signed in the first registry and copied with its signatures to the others.
+The index is pushed untagged to all registries, signed and attested in the first one, and its signatures and attestations are copied to the others, before it is tagged.
 Signatures can be verified as follows:
 
 ```bash
@@ -151,3 +151,29 @@ cosign verify \
 ```
 
 For GitLab, the identity is `https://gitlab.com/GROUP/PROJECT//.gitlab-ci.yml@refs/heads/main` and the issuer is `https://gitlab.com`.
+
+### SBOMs and provenance
+
+With `cosign.enable`, an image's SBOM, a CycloneDX, SPDX 2, or SPDX 3 JSON document, is attested to the manifest of that image's platform, since each platform has its own dependencies.
+It is read from the image's `passthru.sbom` or given explicitly:
+
+```nix
+docker-manifest = mkDockerManifest {
+  github.enable = true;
+  cosign.enable = true;
+  images = map (system: {
+    image = self.packages.${system}.docker;
+    sbom = "${self.packages.${system}.sbom}/sbom.cdx.json";
+  }) [ "x86_64-linux" "aarch64-linux" ];
+};
+```
+
+The attestation can be verified and downloaded as follows:
+
+```bash
+cosign verify-attestation --type https://cyclonedx.org/bom \
+  --certificate-identity https://github.com/OWNER/REPO/.github/workflows/WORKFLOW.yml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  REGISTRY/REPO@$(regctl image digest --platform linux/amd64 REGISTRY/REPO:TAG) \
+  | jq -r .payload | base64 -d | jq .predicate
+```

@@ -26,6 +26,29 @@ let
     "github.apiEndpoint" = "the metadata is read from the event payload";
     "manifestName" = "the manifest name is generated";
   };
+  image = types.submodule (
+    { config, ... }:
+    {
+      options = {
+        image = mkOption {
+          type = types.package;
+          description = ''
+            Nix-built image, either an archive (e.g., `pkgs.dockerTools.buildLayeredImage`) or a stream (e.g., `pkgs.dockerTools.streamLayeredImage`).
+          '';
+        };
+        sbom = mkOption {
+          type = types.nullOr types.path;
+          default = config.image.passthru.sbom or null;
+          defaultText = lib.literalExpression "image.passthru.sbom or null";
+          example = lib.literalExpression ''"''${self.packages.x86_64-linux.sbom}/sbom.cdx.json"'';
+          description = ''
+            SBOM of the image as a CycloneDX, SPDX 2, or SPDX 3 JSON document, whose format is detected from its content.
+            It is attested to the manifest of the image's platform if `cosign.enable` is set.
+          '';
+        };
+      };
+    }
+  );
 in
 {
   imports = map (name: lib.mkRenamedOptionModule [ name ] [ "images" ]) [
@@ -41,10 +64,10 @@ in
     };
     manifestName = mkDeprecatedOption types.str;
     images = mkOption {
-      type = types.nonEmptyListOf types.package;
+      type = types.nonEmptyListOf (types.coercedTo types.package (image: { inherit image; }) image);
       example = lib.literalExpression "with self.packages; [ x86_64-linux.image aarch64-linux.image ]";
       description = ''
-        Nix-built images to be added to the manifest, either archives (e.g., `pkgs.dockerTools.buildLayeredImage`) or streams (e.g., `pkgs.dockerTools.streamLayeredImage`).
+        Images to be added to the manifest, given as packages or as attribute sets with an `image` and its `sbom`.
         _Note:_ This should be a list of identical images for different architectures.
       '';
     };
@@ -128,7 +151,7 @@ in
       description = ''
         Configuration for the Docker registries to be used.
         The key is the name of the registry (e.g., `ghcr.io`).
-        The index is pushed to and signed in the first registry, then copied with its signatures to the others.
+        The index is pushed untagged to all registries, signed and attested in the first one, and its signatures and attestations are copied to the others, before it is tagged.
       '';
     };
     annotations = mkOption {
@@ -261,7 +284,7 @@ in
           extraArgs = mkOption {
             type = types.listOf types.str;
             default = [ ];
-            description = "Extra arguments passed to cosign sign.";
+            description = "Extra arguments passed to `cosign sign` and `cosign attest`.";
           };
         };
       };
