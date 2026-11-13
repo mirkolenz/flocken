@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+permissions: {}
 jobs:
   check:
     permissions:
@@ -10,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: DeterminateSystems/nix-installer-action@v23
       - run: nix flake check --show-trace --print-build-logs
   release:
@@ -26,6 +29,8 @@ jobs:
       released: ${{ steps.release.outputs.released }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: cihelper/action-semanticrelease-generic@v1
         id: release
   build-docs:
@@ -39,6 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           ref: ${{ needs.release.outputs.ref }}
       - uses: actions/configure-pages@v6
       - uses: DeterminateSystems/nix-installer-action@v23
