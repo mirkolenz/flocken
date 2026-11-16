@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.7.0](https://github.com/mirkolenz/flocken/compare/v2.6.2...v2.7.0) (2026-11-16)
+
+### Features
+
+* **docker-manifest:** attest per-platform image sboms ([cc0e815](https://github.com/mirkolenz/flocken/commit/cc0e815c9cf279bb8f064768435d11b543b180ea))
+* **docker-manifest:** pass index name and digest to later ci steps ([88ae6eb](https://github.com/mirkolenz/flocken/commit/88ae6eb34e515de24802d27a62d45c508b561198))
+
+### Bug Fixes
+
+* **docker-manifest:** run image streams natively without emulation ([2c6abea](https://github.com/mirkolenz/flocken/commit/2c6abead02c60e072db829020fda6da759f867be))
+
 ## [2.6.2](https://github.com/mirkolenz/flocken/compare/v2.6.1...v2.6.2) (2026-11-08)
 
 ### Bug Fixes
